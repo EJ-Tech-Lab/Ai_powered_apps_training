@@ -435,27 +435,28 @@
 
     // Function to add messages (supports Markdown)
     const addMessage = (message, role, imgSrc) => {
-        const messageElement = document.createElement('div');
-        const textElement = document.createElement('div');  // Use div for HTML
-        const imgElement = document.createElement('img');
+    const messageElement = document.createElement('div');
+    const bubble = document.createElement('p');  // keep <p> for styling!
+    const imgElement = document.createElement('img');
 
-        messageElement.className = `message ${role}`;
-        imgElement.src = imgSrc;
+    messageElement.className = `message ${role}`;
+    imgElement.src = imgSrc;
 
-        // Convert markdown → HTML
-        textElement.innerHTML = marked.parse(message);
+    // Convert Markdown → HTML inside the <p>
+    bubble.innerHTML = marked.parse(message);
 
-        messageElement.appendChild(imgElement);
-        messageElement.appendChild(textElement);
-        messagesContainer.appendChild(messageElement);
+    messageElement.appendChild(imgElement);
+    messageElement.appendChild(bubble);
+    messagesContainer.appendChild(messageElement);
 
-        // Add spacing clear
-        const clearDiv = document.createElement("div");
-        clearDiv.style.clear = "both";
-        messagesContainer.appendChild(clearDiv);
+    // Clear float
+    const clearDiv = document.createElement("div");
+    clearDiv.className = "clear";
+    messagesContainer.appendChild(clearDiv);
 
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    };
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+};
+
 
     // Function to send the message
     const sendMessage = async (message) => {
