@@ -425,114 +425,97 @@
     <!--end chatbot container-->
 
     <!--Javascript to call the language model-->
-    <script>
-        let savedpasttext = []; // Variable to store the message
-        let savedpastresponse = []; // Variable to store the message
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-        // Section: get the Id of the talking container
-        const messagesContainer = document.getElementById('messages-container');
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-        //
+<script>
+    // Section: message containers
+    const messagesContainer = document.getElementById('messages-container');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
 
-        //Section: function to creat the dialogue window
-        const addMessage = (message, role, imgSrc) => {
-            // creat elements in the dialogue window
-            const messageElement = document.createElement('div');
-            const textElement = document.createElement('p');
-            messageElement.className = `message ${role}`;
-            const imgElement = document.createElement('img');
-            imgElement.src = `${imgSrc}`;
-            // append the image and message to the message element
-            messageElement.appendChild(imgElement);
-            textElement.innerText = message;
-            messageElement.appendChild(textElement);
-            messagesContainer.appendChild(messageElement);
-            // creat the ending of the message
-            var clearDiv = document.createElement("div");
-            clearDiv.style.clear = "both";
-            messagesContainer.appendChild(clearDiv);
-        };
-        //
+    // Function to add messages (supports Markdown)
+    const addMessage = (message, role, imgSrc) => {
+        const messageElement = document.createElement('div');
+        const textElement = document.createElement('div');  // Use div for HTML
+        const imgElement = document.createElement('img');
 
+        messageElement.className = `message ${role}`;
+        imgElement.src = imgSrc;
 
-        //Section: Calling the model
-        const sendMessage = async (message) => {
-            // addMessage(message, 'user','user.jpeg');
-            addMessage(message, 'user', '../static/user.jpeg');
-            // Loading animation
-            const loadingElement = document.createElement('div');
-            const loadingtextElement = document.createElement('p');
-            loadingElement.className = `loading-animation`;
-            loadingtextElement.className = `loading-text`;
-            loadingtextElement.innerText = 'Loading....Please wait';
-            messagesContainer.appendChild(loadingElement);
-            messagesContainer.appendChild(loadingtextElement);
+        // Convert markdown → HTML
+        textElement.innerHTML = marked.parse(message);
 
-            async function makePostRequest(msg) {
-                const url = 'https://ej-0-training.hf.space/chatbot';  // Make a POST request to this url
-                const requestBody = {
-                    prompt: msg
-                };
+        messageElement.appendChild(imgElement);
+        messageElement.appendChild(textElement);
+        messagesContainer.appendChild(messageElement);
 
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(requestBody)
-                    });
+        // Add spacing clear
+        const clearDiv = document.createElement("div");
+        clearDiv.style.clear = "both";
+        messagesContainer.appendChild(clearDiv);
 
-                    const data = await response.text();
-                    // Handle the response data here
-                    console.log(data);
-                    return data;
-                } catch (error) {
-                    // Handle any errors that occurred during the request
-                    console.error('Error:', error);
-                    return error
-                }
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    // Function to send the message
+    const sendMessage = async (message) => {
+        addMessage(message, 'user', '../static/user.jpeg');
+
+        // loading animation
+        const loadingElement = document.createElement('div');
+        const loadingTextElement = document.createElement('p');
+
+        loadingElement.className = 'loading-animation';
+        loadingTextElement.className = 'loading-text';
+        loadingTextElement.innerText = 'Loading... Please wait';
+
+        messagesContainer.appendChild(loadingElement);
+        messagesContainer.appendChild(loadingTextElement);
+
+        async function makePostRequest(msg) {
+            const url = 'https://ej-0-training.hf.space/chatbot';
+            const requestBody = { prompt: msg };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                // FIXED — parse JSON properly
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error:', error);
+                return { error: error.toString() };
             }
+        }
 
-            var res = await makePostRequest(message);
+        const data = await makePostRequest(message);
 
-            data = { "response": res };
+        // Remove loading animation
+        document.querySelector('.loading-animation').remove();
+        document.querySelector('.loading-text').remove();
 
-            // Deleting the loading animation
-            const loadanimation = document.querySelector('.loading-animation');
-            const loadtxt = document.querySelector('.loading-text');
-            loadanimation.remove();
-            loadtxt.remove();
+        if (data.error) {
+            addMessage(`Error: ${data.error}`, 'error', '../static/Error.png');
+        } else {
+            addMessage(data.response, 'aibot', '../static/Bot_logo.png');
+        }
+    };
 
-            if (data.error) {
-                // Handle the error here
-                const errorMessage = JSON.stringify(data);
-                // addMessage(errorMessage, 'error','Error.png');
-                addMessage(errorMessage, 'error', '../static/Error.png');
-            } else {
-                // Process the normal response here
-                const responseMessage = data['response'];
-                // addMessage(responseMessage, 'aibot','Bot_logo.png');
-                addMessage(responseMessage, 'aibot', '../static/Bot_logo.png');
-            }
+    // Submit event
+    messageForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const message = messageInput.value.trim();
+        if (message !== '') {
+            messageInput.value = '';
+            await sendMessage(message);
+        }
+    });
+</script>
 
-            //!!!!! code to  save the content in history
-            //
-        };
-        //
-
-        //Section: Button to submit to the model and get the response
-        messageForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const message = messageInput.value.trim();
-            if (message !== '') {
-                messageInput.value = '';
-                await sendMessage(message);
-            }
-        });
-
-    </script>
     <!--end Javascript to call the language model-->
 </body>
 
