@@ -187,111 +187,118 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    const messagesContainer = document.getElementById('messages-container');
-    const messageForm = document.getElementById('message-form');
-    const messageInput = document.getElementById('message-input');
+const messagesContainer = document.getElementById('messages-container');
+const messageForm = document.getElementById('message-form');
+const messageInput = document.getElementById('message-input');
 
-    const BACKEND_URL = "https://ej-0-training.hf.space"; // your backend
+const BACKEND_URL = "https://ej-0-training.hf.space"; // backend URL
+let securityReady = false;
 
-    // ================================
-    // 🔐 1. INIT SECURITY ON PAGE LOAD
-    // ================================
-    async function initSecurity() {
-        try {
-            const res = await fetch(`${BACKEND_URL}/auth`, {
-                method: "GET",
-                credentials: "include" // VERY IMPORTANT (send/receive cookies)
-            });
+// ================================
+// 🔐 1. INIT SECURITY ON PAGE LOAD
+// ================================
+async function initSecurity() {
+    try {
+        const res = await fetch(`${BACKEND_URL}/auth`, {
+            method: "GET",
+            credentials: "include" // VERY IMPORTANT (send/receive cookies)
+        });
 
-            const data = await res.json();
-            window.clientToken = data.token;  // store short-lived token
-        } catch (err) {
-            console.error("Auth error:", err);
-            alert("Security initialization failed. Refresh the page.");
-        }
+        const data = await res.json();
+        window.clientToken = data.token;  // store short-lived token
+        securityReady = true;
+
+        // Enable form
+        messageInput.disabled = false;
+        messageForm.querySelector('button').disabled = false;
+
+    } catch (err) {
+        console.error("Auth error:", err);
+        alert("Security initialization failed. Refresh the page.");
+    }
+}
+
+// Disable input until security ready
+messageInput.disabled = true;
+messageForm.querySelector('button').disabled = true;
+initSecurity();
+
+// ================================
+// 🔧 UI: Auto-resize textarea
+// ================================
+messageInput.addEventListener('input', e => {
+    e.target.style.height = 'auto';
+    e.target.style.height = e.target.scrollHeight + 'px';
+});
+
+const addMessage = (message, role) => {
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${role}`;
+
+    const bubble = document.createElement('p');
+    bubble.innerHTML = marked.parse(message);
+
+    messageElement.appendChild(bubble);
+    messagesContainer.appendChild(messageElement);
+
+    messagesContainer.scrollTo({
+        top: messagesContainer.scrollHeight,
+        behavior: 'smooth'
+    });
+};
+
+// ================================
+// 🤖 2. SEND MESSAGE TO BACKEND
+// ================================
+const sendMessage = async (message) => {
+    if (!securityReady) {
+        alert("Security not ready. Wait a moment and try again.");
+        return;
     }
 
-    // Call security on first load
-    initSecurity();
+    addMessage(message, 'user');
 
+    const loading = document.createElement('p');
+    loading.className = 'loading-text';
+    loading.innerText = 'AI is typing...';
+    messagesContainer.appendChild(loading);
+    messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
 
-    // ================================
-    // 🔧 UI: Auto-resize textarea
-    // ================================
-    messageInput.addEventListener('input', e => {
-        e.target.style.height = 'auto';
-        e.target.style.height = e.target.scrollHeight + 'px';
-    });
-
-    const addMessage = (message, role) => {
-        const messageElement = document.createElement('div');
-        messageElement.className = `message ${role}`;
-
-        const bubble = document.createElement('p');
-        bubble.innerHTML = marked.parse(message);
-
-        messageElement.appendChild(bubble);
-        messagesContainer.appendChild(messageElement);
-
-        messagesContainer.scrollTo({
-            top: messagesContainer.scrollHeight,
-            behavior: 'smooth'
+    try {
+        const response = await fetch(`${BACKEND_URL}/chatbot`, {
+            method: 'POST',
+            credentials: "include",   // send auth cookie
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Client-Token': window.clientToken  // short-lived token
+            },
+            body: JSON.stringify({ prompt: message })
         });
-    };
 
+        const data = await response.json();
+        loading.remove();
+        addMessage(data.response, 'aibot');
 
-    // ================================
-    // 🤖 2. SEND MESSAGE TO BACKEND
-    // ================================
-    const sendMessage = async (message) => {
+    } catch (error) {
+        loading.remove();
+        addMessage(`Error: ${error}`, 'aibot');
+    }
+};
 
-        // Add user message
-        addMessage(message, 'user');
-
-        // Show loading bubble
-        const loading = document.createElement('p');
-        loading.className = 'loading-text';
-        loading.innerText = 'AI is typing...';
-        messagesContainer.appendChild(loading);
-        messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/chatbot`, {
-                method: 'POST',
-                credentials: "include",   // send auth cookie
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Client-Token': window.clientToken  // 🔐 short-lived token
-                },
-                body: JSON.stringify({ prompt: message })
-            });
-
-            const data = await response.json();
-
-            loading.remove();
-            addMessage(data.response, 'aibot');
-
-        } catch (error) {
-            loading.remove();
-            addMessage(`Error: ${error}`, 'aibot');
-        }
-    };
-
-
-    // ================================
-    // ⌨️ 3. Handle form submit
-    // ================================
-    messageForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const message = messageInput.value.trim();
-        if (!message) return;
-        messageInput.value = '';
-        await sendMessage(message);
-    });
-
+// ================================
+// ⌨️ 3. Handle form submit
+// ================================
+messageForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const message = messageInput.value.trim();
+    if (!message) return;
+    messageInput.value = '';
+    await sendMessage(message);
+});
 </script>
+
 
 </body>
 
