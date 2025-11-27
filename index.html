@@ -181,9 +181,10 @@
             <div class="chat-messages" id="messages-container"></div>
 
             <form class="chat-form" id="message-form">
-                <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
-                <button type="submit">➤</button>
-            </form>
+    <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
+    <button type="button" id="mic-btn">🎤</button>
+    <button type="submit">➤</button>
+</form>
         </div>
     </main>
 
@@ -192,7 +193,9 @@
         const messagesContainer = document.getElementById('messages-container');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
-
+let mediaRecorder;
+let audioChunks = [];
+let recording = false;
         // Auto-resize textarea
         messageInput.addEventListener('input', e => {
             e.target.style.height = 'auto';
@@ -244,6 +247,53 @@
             messageInput.value = '';
             await sendMessage(message);
         });
+        micBtn.addEventListener('click', async () => {
+    if (!recording) {
+        // Start recording
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert("Microphone not supported in this browser.");
+            return;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'speech.webm');
+
+            // Send to your ASR endpoint (Groq)
+            try {
+                const res = await fetch('https://ej-0-training.hf.space/asr', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                const text = data.text; // assuming ASR returns {"text": "..."}
+                
+                // Add recognized text to chat & send to chatbot
+                messageInput.value = text;
+                await sendMessage(text);
+            } catch (err) {
+                console.error(err);
+                addMessage("Error recognizing speech.", 'aibot');
+            }
+        };
+
+        mediaRecorder.start();
+        micBtn.innerText = "⏹️"; // indicate recording
+        recording = true;
+    } else {
+        // Stop recording
+        mediaRecorder.stop();
+        micBtn.innerText = "🎤";
+        recording = false;
+    }
+});
     </script>
 
 
