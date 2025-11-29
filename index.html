@@ -6,11 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chatbot</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: Arial, sans-serif;
@@ -44,10 +40,7 @@
             color: #fff;
         }
 
-        .chat-header h1 {
-            margin: 0;
-            font-size: 1.8em;
-        }
+        .chat-header h1 { margin: 0; font-size: 1.8em; }
 
         .chat-messages {
             flex: 1;
@@ -58,14 +51,8 @@
             gap: 0.5em;
         }
 
-        .message {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5em;
-        }
+        .message { display: flex; align-items: flex-start; gap: 0.5em; }
 
-        /* User messages in bubble */
-        /* User messages in bubble on the right */
         .user p {
             background-color: #7B58E5;
             color: #fff;
@@ -73,56 +60,17 @@
             border-radius: 20px 20px 0 20px;
             max-width: 90%;
             word-wrap: break-word;
-
             margin-left: auto;
-            /* push bubble to the right */
             text-align: left;
-            /* keep text starting from left */
         }
 
-
-
-        /* AI messages: no bubble, plain text */
-        /* AI messages: plain text, but wrap properly */
         .aibot p {
             color: #000;
             max-width: 100%;
             word-wrap: break-word;
             white-space: pre-wrap;
-            /* preserves line breaks */
             overflow-wrap: break-word;
-            /* wraps long words/numbers */
         }
-
-        /* Markdown lists, code blocks, etc. */
-        .aibot p ul,
-        .aibot p ol {
-            padding-left: 1.2em;
-            /* indent lists */
-            margin: 0.5em 0;
-        }
-
-        .aibot p li {
-            margin: 0.3em 0;
-        }
-
-        .aibot p code {
-            background-color: #f0f0f0;
-            padding: 2px 4px;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-
-        .aibot p pre {
-            background-color: #f0f0f0;
-            padding: 0.5em;
-            border-radius: 5px;
-            overflow-x: auto;
-            /* horizontal scroll if code is too long */
-            white-space: pre-wrap;
-            /* wraps long lines */
-        }
-
 
         .chat-form {
             display: flex;
@@ -137,7 +85,6 @@
             border: 1px solid #ccc;
             resize: none;
             font-size: 1em;
-            overflow: hidden;
         }
 
         .chat-form button {
@@ -150,25 +97,9 @@
             cursor: pointer;
         }
 
-        .chat-form button:hover {
-            background-color: #5a3ecf;
-        }
+        .chat-form button:hover { background-color: #5a3ecf; }
 
-        .loading-text {
-            font-style: italic;
-            color: #555;
-        }
-
-        @media (max-width: 600px) {
-            .chatbot {
-                max-width: 100%;
-            }
-
-            .user p,
-            .aibot p {
-                max-width: 90%;
-            }
-        }
+        .loading-text { font-style: italic; color: #555; }
     </style>
 </head>
 
@@ -178,27 +109,28 @@
             <div class="chat-header">
                 <h1>Pea🫛</h1>
             </div>
+
             <div class="chat-messages" id="messages-container"></div>
 
             <form class="chat-form" id="message-form">
-    <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
-    <button type="button" id="mic-btn">🎤</button>
-    <button type="submit">➤</button>
-</form>
+                <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
+                <button type="button" id="mic-btn">🎤</button>
+                <button type="submit">➤</button>
+            </form>
         </div>
     </main>
 
- <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         const messagesContainer = document.getElementById('messages-container');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         const micBtn = document.getElementById('mic-btn');
 
-let mediaRecorder;
-let audioChunks = [];
-let recording = false;
-        // Auto-resize textarea
+        let mediaRecorder;
+        let audioChunks = [];
+        let recording = false;
+
         messageInput.addEventListener('input', e => {
             e.target.style.height = 'auto';
             e.target.style.height = e.target.scrollHeight + 'px';
@@ -213,8 +145,6 @@ let recording = false;
 
             messageElement.appendChild(bubble);
             messagesContainer.appendChild(messageElement);
-
-            // Smooth scroll to bottom
             messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
         };
 
@@ -225,7 +155,6 @@ let recording = false;
             loading.className = 'loading-text';
             loading.innerText = 'AI is typing...';
             messagesContainer.appendChild(loading);
-            messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
 
             try {
                 const response = await fetch('https://ej-0-training.hf.space/chatbot', {
@@ -233,9 +162,11 @@ let recording = false;
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt: message })
                 });
+
                 const data = await response.json();
                 loading.remove();
                 addMessage(data.response, 'aibot');
+
             } catch (error) {
                 loading.remove();
                 addMessage(`Error: ${error}`, 'aibot');
@@ -249,46 +180,51 @@ let recording = false;
             messageInput.value = '';
             await sendMessage(message);
         });
+
         micBtn.addEventListener('click', async () => {
-        if (!recording) {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("Microphone not supported in this browser.");
-                return;
-            }
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-             mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); // <-- fix here
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-
-                const formData = new FormData();
-                formData.append('file', audioBlob, 'speech.webm');
-
-                try {
-                    const res = await fetch('https://ej-0-training.hf.space/asr', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json();
-                    const text = data.text;
-                    messageInput.value = text;
-                    await sendMessage(text);
-                } catch (err) {
-                    console.error(err);
-                    addMessage("Error recognizing speech.", 'aibot');
+            if (!recording) {
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    alert("Microphone not supported.");
+                    return;
                 }
-            };
 
-            mediaRecorder.start();
-            micBtn.innerText = "⏹️";
-            recording = true;
-        } else {
-            mediaRecorder.stop();
-            micBtn.innerText = "🎤";
-            recording = false;
-        }
-    });
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'speech.webm');
+
+                    try {
+                        const res = await fetch('https://ej-0-training.hf.space/asr', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const data = await res.json();
+                        const text = data.text;
+                        messageInput.value = text;
+                        await sendMessage(text);
+
+                    } catch (err) {
+                        console.error(err);
+                        addMessage("Error recognizing speech.", 'aibot');
+                    }
+                };
+
+                mediaRecorder.start();
+                micBtn.innerText = "⏹️";
+                recording = true;
+            } else {
+                mediaRecorder.stop();
+                micBtn.innerText = "🎤";
+                recording = false;
+            }
+        });
     </script>
+</body>
+</html>
