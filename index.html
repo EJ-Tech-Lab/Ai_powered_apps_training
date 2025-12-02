@@ -272,7 +272,6 @@
 
 <main>
   <div class="chatbot">
-
     <div class="chat-header">
       <h1>Pea 🫛</h1>
       <div class="meta" id="who"></div>
@@ -287,7 +286,6 @@
     <!-- CHAT PAGE -->
     <div id="chat-page">
       <div class="chat-messages" id="messages-container"></div>
-
       <form class="chat-form" id="message-form">
         <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
         <button type="button" id="mic-btn">🎤</button>
@@ -298,252 +296,131 @@
     <!-- TOOLS PAGE -->
     <div id="tools-panel">
       <textarea id="tools-text" placeholder="Enter text..."></textarea>
-
       <select id="tools-mode">
         <option value="summarize">Summarize</option>
         <option value="translate">Translate</option>
         <option value="rewrite">Rewrite</option>
       </select>
-
       <input id="tools-extra" placeholder="Target language / style (optional)" />
-
       <button id="tools-run">send</button>
-
-      <!-- Results Box -->
       <div id="tools-result"></div>
+      <input type="file" id="rag-file-input" />
+      <button id="rag-upload-btn">Upload Document</button>
+      <div id="rag-upload-result"></div>
     </div>
-
   </div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-/* ==============================
-   CONFIG
-=================================*/
 const API_BASE = "https://ej-0-training.hf.space";
-
-/* ==============
-   DOM ELEMENTS
-=================*/
 const messagesContainer = document.getElementById('messages-container');
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const micBtn = document.getElementById('mic-btn');
-
 const whoEl = document.getElementById('who');
-
 const tabChat = document.getElementById("tab-chat");
 const tabTools = document.getElementById("tab-tools");
 const chatPage = document.getElementById("chat-page");
 const toolsPanel = document.getElementById("tools-panel");
-
 const loginPopup = document.getElementById('login-popup');
 const loginBtn = document.getElementById('login-btn');
 const loginUser = document.getElementById('login-user');
 const loginPass = document.getElementById('login-pass');
 const loginError = document.getElementById('login-error');
 const toolsResult = document.getElementById("tools-result");
-  
+const ragFileInput = document.getElementById('rag-file-input');
+const ragUploadBtn = document.getElementById('rag-upload-btn');
+const ragUploadResult = document.getElementById('rag-upload-result');
 let SESSION_ID = null;
 
-/* ==============================
-   TAB SWITCHING
-=================================*/
 function switchTab(tab) {
-  if (tab === "chat") {
-    tabChat.classList.add("active");
-    tabTools.classList.remove("active");
-    chatPage.style.display = "block";
-    toolsPanel.style.display = "none";
-  } else {
-    tabTools.classList.add("active");
-    tabChat.classList.remove("active");
-    chatPage.style.display = "none";
-    toolsPanel.style.display = "block";
-  }
+  if(tab === 'chat') { tabChat.classList.add('active'); tabTools.classList.remove('active'); chatPage.style.display='block'; toolsPanel.style.display='none';}
+  else { tabTools.classList.add('active'); tabChat.classList.remove('active'); chatPage.style.display='none'; toolsPanel.style.display='block';}
+}
+tabChat.onclick = () => switchTab('chat');
+tabTools.onclick = () => switchTab('tools');
+
+function addMessage(text, role){
+  const wrapper = document.createElement('div'); wrapper.className='message '+role;
+  const bubble = document.createElement('p'); bubble.innerHTML = marked.parse(text);
+  wrapper.appendChild(bubble); messagesContainer.appendChild(wrapper);
+  messagesContainer.scrollTo({top: messagesContainer.scrollHeight, behavior:'smooth'});
 }
 
-tabChat.onclick = () => switchTab("chat");
-tabTools.onclick = () => switchTab("tools");
-
-/* ==============================
-   MESSAGE HELPER
-=================================*/
-function addMessage(text, role) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "message " + role;
-
-  const bubble = document.createElement("p");
-  bubble.innerHTML = marked.parse(text);
-
-  wrapper.appendChild(bubble);
-  messagesContainer.appendChild(wrapper);
-  messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
-}
-
-/* ==============================
-   LOGIN
-=================================*/
 loginBtn.onclick = async () => {
-  loginError.innerText = "";
+  loginError.innerText = '';
   const username = loginUser.value.trim();
   const password = loginPass.value.trim();
-
-  const res = await fetch(API_BASE + "/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ username, password })
-  });
-
+  const res = await fetch(`${API_BASE}/login`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password})});
   const data = await res.json();
-  if (data.success) {
-    SESSION_ID = data.session_id;
-    loginPopup.style.display = "none";
-    whoEl.innerText = `Signed in as: ${SESSION_ID}`;
-    addMessage(`Welcome back, ${SESSION_ID}!`, "aibot");
-  } else {
-    loginError.innerText = "Invalid login.";
-  }
+  if(data.success){SESSION_ID=data.session_id; loginPopup.style.display='none'; whoEl.innerText=`Signed in as: ${SESSION_ID}`; addMessage(`Welcome back, ${SESSION_ID}!`,'aibot');}
+  else{loginError.innerText='Invalid login.';}
 };
-/* TYPING ANIMATION */
-function showTyping() {
-  const bubble = document.createElement("div");
-  bubble.className = "message aibot";
-  bubble.id = "typingBubble";
-  bubble.innerHTML = `<div class="typing"></div>`;
-  messagesContainer.appendChild(bubble);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-function removeTyping() {
-  const el = document.getElementById("typingBubble");
-  if (el) el.remove();
-}
-/* ==============================
-   SEND CHAT MESSAGE
-=================================*/
-async function sendMessage(text) {
-  if (!SESSION_ID) return addMessage("Please login first.", "aibot");
 
-  addMessage(text, "user");
-  showTyping();
+function showTyping(){
+  const bubble = document.createElement('div'); bubble.className='message aibot'; bubble.id='typingBubble';
+  bubble.innerHTML='<div class="typing"></div>'; messagesContainer.appendChild(bubble);
+  messagesContainer.scrollTop=messagesContainer.scrollHeight;
+}
+function removeTyping(){const el=document.getElementById('typingBubble'); if(el) el.remove();}
 
-  const res = await fetch(API_BASE + "/chatbot", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: text, session_id: SESSION_ID }),
-  });
+async function sendMessage(text){
+  if(!SESSION_ID) return addMessage('Please login first.','aibot');
+  addMessage(text,'user'); showTyping();
+  const res = await fetch(`${API_BASE}/chatbot`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt:text, session_id:SESSION_ID})});
   const data = await res.json();
-
-  removeTyping();
-  addMessage(data.response || "No response", "aibot");
+  removeTyping(); addMessage(data.response||'No response','aibot');
 }
 
-messageForm.addEventListener("submit", e => {
-  e.preventDefault();
-  const text = messageInput.value.trim();
-  if (!text) return;
-  messageInput.value = "";
-  sendMessage(text);
-});
+messageForm.addEventListener('submit', e=>{e.preventDefault(); const text=messageInput.value.trim(); if(!text) return; messageInput.value=''; sendMessage(text);});
 
-/* ==============================
-   MIC BUTTON / SPEECH TO TEXT
-=================================*/
-let mediaRecorder = null;
-let audioChunks = [];
-let recording = false;
-
-micBtn.addEventListener("click", async () => {
-  if (!recording) {
-    // Start recording
-    if (!navigator.mediaDevices?.getUserMedia) {
-      alert("Your browser does not support microphone recording.");
-      return;
-    }
-
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-    audioChunks = [];
-
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-    mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-      const formData = new FormData();
-      formData.append("file", audioBlob, "speech.webm");
-
-      try {
-        const res = await fetch(API_BASE + "/asr", {
-          method: "POST",
-          body: formData
-        });
-
-        const data = await res.json();
-        const text = data.text;
-
-        messageInput.value = text;
-        await sendMessage(text);
-
-      } catch (err) {
-        console.error(err);
-        addMessage("Error during speech recognition.", "aibot");
-      }
+let mediaRecorder=null; let audioChunks=[]; let recording=false;
+micBtn.addEventListener('click', async()=>{
+  if(!recording){
+    if(!navigator.mediaDevices?.getUserMedia){alert('Your browser does not support microphone recording.'); return;}
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRecorder=new MediaRecorder(stream,{mimeType:'audio/webm'}); audioChunks=[];
+    mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+    mediaRecorder.onstop=async()=>{
+      const audioBlob=new Blob(audioChunks,{type:'audio/webm'});
+      const formData=new FormData(); formData.append('file',audioBlob,'speech.webm');
+      try{
+        const res = await fetch(`${API_BASE}/asr`,{method:'POST',body:formData});
+        const data=await res.json(); const text=data.text;
+        messageInput.value=text; await sendMessage(text);
+      }catch(err){console.error(err); addMessage('Error during speech recognition.','aibot');}
     };
-
-    mediaRecorder.start();
-    recording = true;
-    micBtn.innerText = "⏹️";   // stop icon
-
-  } else {
-    // Stop recording
-    recording = false;
-    micBtn.innerText = "🎤";
-    mediaRecorder.stop();
-  }
+    mediaRecorder.start(); recording=true; micBtn.innerText='⏹️';
+  } else{ recording=false; micBtn.innerText='🎤'; mediaRecorder.stop();}
 });
 
-/* ==============================
-   TOOLS (LLAMA)
-=================================*/
-document.getElementById("tools-run").onclick = async () => {
-  const text = document.getElementById("tools-text").value.trim();
-  const task = document.getElementById("tools-mode").value;
-  const extra = document.getElementById("tools-extra").value.trim();
-
-  if (!text) {
-    alert("Enter some text.");
-    return;
-  }
-  toolsResult.style.display = "block";
-  toolsResult.innerHTML = "⏳ Processing...";
-  
-  const body = { text, task };
-  if (task === "translate") body.to = extra || "english";
-  if (task === "rewrite") body.style = extra || "normal";
-
-  const res = await fetch(API_BASE + "/llama", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
-  });
-
-  const data = await res.json();
-
-  // ★ Replace alert with UI box (already added earlier)
-  
-  toolsResult.innerHTML = marked.parse(data.result || "No result");
-
+// LLAMA TOOL
+document.getElementById('tools-run').onclick=async()=>{
+  const text=document.getElementById('tools-text').value.trim();
+  const task=document.getElementById('tools-mode').value;
+  const extra=document.getElementById('tools-extra').value.trim();
+  if(!text){alert('Enter some text.'); return;}
+  toolsResult.style.display='block'; toolsResult.innerHTML='⏳ Processing...';
+  const body={text, task}; if(task==='translate') body.to=extra||'english'; if(task==='rewrite') body.style=extra||'normal';
+  const res = await fetch(`${API_BASE}/llama`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data=await res.json(); toolsResult.innerHTML=marked.parse(data.result||'No result');
 };
 
-/* ==============================
-   AUTO FOCUS LOGIN FIELD
-=================================*/
-window.onload = () => loginUser.focus();
+// RAG FILE UPLOAD
+ragUploadBtn.onclick=async()=>{
+  if(!SESSION_ID){alert('Please login first'); return;}
+  if(!ragFileInput.files.length){alert('Select a file first'); return;}
+  const file=ragFileInput.files[0];
+  const formData=new FormData(); formData.append('file', file);
+  ragUploadResult.innerText='⏳ Uploading...';
+  try{
+    const res=await fetch(`${API_BASE}/upload_pdf`,{method:'POST',body:formData});
+    const data=await res.json();
+    ragUploadResult.innerText=data.result||'No response';
+  }catch(err){console.error(err); ragUploadResult.innerText='Upload failed.';}
+};
+
+window.onload=()=>loginUser.focus();
 </script>
-
-
 </body>
 </html>
