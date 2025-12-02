@@ -58,27 +58,6 @@
     .meta { font-size: .9em; opacity: .9; }
 
     /* =====================================
-       TABS
-    ======================================*/
-    .tabs {
-      display: flex;
-      background: #e4e0ff;
-    }
-    .tab {
-      flex: 1;
-      text-align: center;
-      padding: 14px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.25s;
-      border-bottom: 3px solid transparent;
-    }
-    .tab.active {
-      background: #fff;
-      border-bottom: 3px solid #7b58e5;
-    }
-
-    /* =====================================
        CHAT AREA
     ======================================*/
     .chat-messages {
@@ -166,55 +145,6 @@
     .chat-form button:hover {
       background-color: #633ad9;
     }
-
-    /* =====================================
-       TOOLS PANEL
-    ======================================*/
-    #tools-panel {
-      display: none;
-      padding: 1.3em;
-      background: #fafafa;
-    }
-
-    #tools-panel textarea {
-      width: 100%;
-      height: 160px;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #bbb;
-    }
-    #tools-panel select, 
-    #tools-panel input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 12px;
-      border-radius: 10px;
-      border: 1px solid #bbb;
-    }
-    #tools-panel button {
-      margin-top: 16px;
-      width: 100%;
-      padding: 12px;
-      background: #7B58E5;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 1.05em;
-    }
-
-    /* Result Box */
-    #tools-result {
-      margin-top: 18px;
-      padding: 14px;
-      background: #f1ecff;
-      border-left: 4px solid #7B58E5;
-      border-radius: 10px;
-      display: none;
-      white-space: pre-wrap;
-      animation: fadeIn 0.4s;
-    }
-
     /* =====================================
        LOGIN POPUP
     ======================================*/
@@ -255,17 +185,34 @@
       font-size: 1.05em;
       cursor: pointer;
     }
+    #switch-mode {
+      margin-top: 10px;
+      color: #7B58E5;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.9em;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
     <!-- LOGIN POPUP -->
     <div id="login-popup">
         <div id="login-card">
-            <h3>Sign in</h3>
+
+            <h3 id="login-title">Sign in</h3>
+
             <input id="login-user" placeholder="username" />
             <input id="login-pass" type="password" placeholder="password" />
+
+            <!-- Appears only in signup mode -->
+            <input id="login-pass2" type="password" placeholder="confirm password" style="display:none;" />
+
             <button id="login-btn">Login</button>
+
             <p id="login-error" style="color:red"></p>
+
+            <div id="switch-mode">Don't have an account? Sign up</div>
         </div>
     </div>
 
@@ -276,13 +223,6 @@
                 <div class="meta" id="who"></div>
             </div>
 
-            <!-- TABS -->
-            <div class="tabs">
-                <div class="tab active" id="tab-chat">💬 Chat</div>
-                <div class="tab" id="tab-tools">🛠 Tools</div>
-            </div>
-
-            <!-- CHAT PAGE -->
             <div id="chat-page">
                 <div class="chat-messages" id="messages-container"></div>
                 <form class="chat-form" id="message-form">
@@ -290,20 +230,6 @@
                     <button type="button" id="mic-btn">🎤</button>
                     <button type="submit">➤</button>
                 </form>
-            </div>
-
-            <!-- TOOLS PAGE -->
-            <div id="tools-panel">
-                <textarea id="tools-text" placeholder="Enter text..."></textarea>
-                <select id="tools-mode">
-                    <option value="summarize">Summarize</option>
-                    <option value="translate">Translate</option>
-                    <option value="rewrite">Rewrite</option>
-                </select>
-                <input id="tools-extra" placeholder="Target language / style (optional)" />
-                <button id="tools-run">send</button>
-                <!-- Results Box -->
-                <div id="tools-result"></div>
             </div>
         </div>
     </main>
@@ -319,35 +245,19 @@
         const messageInput = document.getElementById('message-input');
         const micBtn = document.getElementById('mic-btn');
         const whoEl = document.getElementById('who');
-        const tabChat = document.getElementById("tab-chat");
-        const tabTools = document.getElementById("tab-tools");
-        const chatPage = document.getElementById("chat-page");
-        const toolsPanel = document.getElementById("tools-panel");
+       
         const loginPopup = document.getElementById('login-popup');
         const loginBtn = document.getElementById('login-btn');
         const loginUser = document.getElementById('login-user');
         const loginPass = document.getElementById('login-pass');
-        const loginError = document.getElementById('login-error');
-        const toolsResult = document.getElementById("tools-result");
+        const loginPass2 = document.getElementById('login-pass2');
+    const loginTitle = document.getElementById('login-title');
+    const loginError = document.getElementById('login-error');
+    const switchMode = document.getElementById('switch-mode');
 
         let SESSION_ID = null;
-
-        /* ============================== TAB SWITCHING ============================== */
-        function switchTab(tab) {
-            if (tab === "chat") {
-                tabChat.classList.add("active");
-                tabTools.classList.remove("active");
-                chatPage.style.display = "block";
-                toolsPanel.style.display = "none";
-            } else {
-                tabTools.classList.add("active");
-                tabChat.classList.remove("active");
-                chatPage.style.display = "none";
-                toolsPanel.style.display = "block";
-            }
-        }
-        tabChat.onclick = () => switchTab("chat");
-        tabTools.onclick = () => switchTab("tools");
+        let isSignupMode = false;
+       
 
         /* ============================== MESSAGE HELPER ============================== */
         function addMessage(text, role) {
@@ -361,26 +271,74 @@
         }
 
         /* ============================== LOGIN ============================== */
-        loginBtn.onclick = async () => {
-            loginError.innerText = "";
-            const username = loginUser.value.trim();
-            const password = loginPass.value.trim();
+        /* LOGIN / SIGNUP SWITCH */
+    switchMode.onclick = () => {
+        isSignupMode = !isSignupMode;
+
+        if (isSignupMode) {
+            loginTitle.innerText = "Sign up";
+            loginBtn.innerText = "Create Account";
+            switchMode.innerText = "Already have an account? Sign in";
+            loginPass2.style.display = "block";
+        } else {
+            loginTitle.innerText = "Sign in";
+            loginBtn.innerText = "Login";
+            switchMode.innerText = "Don't have an account? Sign up";
+            loginPass2.style.display = "none";
+        }
+
+        loginError.innerText = "";
+    };
+
+    /* LOGIN / SIGNUP REQUEST */
+    loginBtn.onclick = async () => {
+        loginError.innerText = "";
+        const username = loginUser.value.trim();
+        const password = loginPass.value.trim();
+
+        if (!username || !password) {
+            loginError.innerText = "Fill all fields.";
+            return;
+        }
+
+        if (isSignupMode) {
+            const password2 = loginPass2.value.trim();
+            if (password !== password2) {
+                loginError.innerText = "Passwords do not match.";
+                return;
+            }
+
+            const res = await fetch(API_BASE + "/signup", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                loginError.innerText = data.error || "Signup failed.";
+                return;
+            }
+            // Auto login after signup
+            SESSION_ID = data.session_id;
+        } 
+        else {
             const res = await fetch(API_BASE + "/login", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ username, password })
             });
             const data = await res.json();
-            if (data.success) {
-                SESSION_ID = data.session_id;
-                loginPopup.style.display = "none";
-                whoEl.innerText = `Signed in as: ${SESSION_ID}`;
-                addMessage(`Welcome back, ${SESSION_ID}!`, "aibot");
-            } else {
+            if (!data.success) {
                 loginError.innerText = "Invalid login.";
+                return;
             }
-        };
+            SESSION_ID = data.session_id;
+        }
 
+        loginPopup.style.display = "none";
+        whoEl.innerText = `Signed in as: ${SESSION_ID}`;
+        addMessage(`Welcome, ${SESSION_ID}!`, "aibot");
+    };
         /* ============================== TYPING ANIMATION ============================== */
         function showTyping() {
             const bubble = document.createElement("div");
@@ -459,27 +417,7 @@
         });
 
         /* ============================== TOOLS (LLAMA) ============================== */
-        document.getElementById("tools-run").onclick = async () => {
-            const text = document.getElementById("tools-text").value.trim();
-            const task = document.getElementById("tools-mode").value;
-            const extra = document.getElementById("tools-extra").value.trim();
-            if (!text) { alert("Enter some text."); return; }
-
-            toolsResult.style.display = "block";
-            toolsResult.innerHTML = "⏳ Processing...";
-
-            const body = { text, task };
-            if (task === "translate") body.to = extra || "english";
-            if (task === "rewrite") body.style = extra || "normal";
-
-            const res = await fetch(API_BASE + "/llama", {
-                method: "POST",
-                headers: {"Content-Type":"application/json"},
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
-            toolsResult.innerHTML = marked.parse(data.result || "No result");
-        };
+        
 
         /* ============================== AUTO FOCUS LOGIN FIELD ============================== */
         window.onload = () => loginUser.focus();
