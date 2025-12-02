@@ -304,9 +304,6 @@
                 <button id="tools-run">send</button>
                 <!-- Results Box -->
                 <div id="tools-result"></div>
-              <input type="file" id="rag-file-input" />
-<button id="rag-upload-btn">Upload Document</button>
-<div id="rag-upload-result"></div>
             </div>
         </div>
     </main>
@@ -332,9 +329,7 @@
         const loginPass = document.getElementById('login-pass');
         const loginError = document.getElementById('login-error');
         const toolsResult = document.getElementById("tools-result");
-        const ragFileInput = document.getElementById('rag-file-input');
-const ragUploadBtn = document.getElementById('rag-upload-btn');
-const ragUploadResult = document.getElementById('rag-upload-result');
+
         let SESSION_ID = null;
 
         /* ============================== TAB SWITCHING ============================== */
@@ -485,22 +480,10 @@ const ragUploadResult = document.getElementById('rag-upload-result');
             const data = await res.json();
             toolsResult.innerHTML = marked.parse(data.result || "No result");
         };
-      // RAG FILE UPLOAD
-ragUploadBtn.onclick=async()=>{
-  if(!SESSION_ID){alert('Please login first'); return;}
-  if(!ragFileInput.files.length){alert('Select a file first'); return;}
-  const file=ragFileInput.files[0];
-  const formData=new FormData(); formData.append('file', file);
-  ragUploadResult.innerText='⏳ Uploading...';
-  try{
-    const res=await fetch(`${API_BASE}/upload_pdf`,{method:'POST',body:formData});
-    const data=await res.json();
-    ragUploadResult.innerText=data.result||'No response';
-  }catch(err){console.error(err); ragUploadResult.innerText='Upload failed.';}
-};
 
         /* ============================== AUTO FOCUS LOGIN FIELD ============================== */
         window.onload = () => loginUser.focus();
     </script>
 </body>
+
 </html>
