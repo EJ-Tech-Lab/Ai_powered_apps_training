@@ -236,7 +236,7 @@
         </div>
     </main>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 /* ============================== CONFIG ============================== */
 const API_BASE = "https://ej-0-training.hf.space";
@@ -261,7 +261,7 @@ let ACCESS_TOKEN = null;
 let CURRENT_USERNAME = null;
 let isSignupMode = false;
 
-/* ============================== MESSAGES ============================== */
+/* ============================== MESSAGE HELPER ============================== */
 function addMessage(text, role) {
     const wrapper = document.createElement("div");
     wrapper.className = "message " + role;
@@ -273,8 +273,7 @@ function addMessage(text, role) {
     messagesContainer.appendChild(wrapper);
     messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
 }
-
-/* ============================== LOGOUT ============================== */
+//=============================================
 document.getElementById("logout-btn").onclick = async () => {
     await fetch(API_BASE + "/logout", {
         method: "POST",
@@ -286,10 +285,10 @@ document.getElementById("logout-btn").onclick = async () => {
 
     whoEl.innerText = "Not signed in";
     loginPopup.style.display = "flex";
+
     addMessage("You have been logged out.", "aibot");
 };
-
-/* ============================== SWITCH LOGIN / SIGNUP ============================== */
+/* ============================== LOGIN / SIGNUP SWITCH ============================== */
 switchMode.onclick = () => {
     isSignupMode = !isSignupMode;
 
@@ -308,7 +307,7 @@ switchMode.onclick = () => {
     loginError.innerText = "";
 };
 
-/* ============================== LOGIN / SIGNUP ============================== */
+/* ============================== LOGIN / SIGNUP REQUEST ============================== */
 loginBtn.onclick = async () => {
     loginError.innerText = "";
     const username = loginUser.value.trim();
@@ -331,8 +330,8 @@ loginBtn.onclick = async () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password })
         });
-
         const data = await res.json();
+
         if (!data.success) {
             loginError.innerText = data.message || "Signup failed.";
             return;
@@ -347,11 +346,10 @@ loginBtn.onclick = async () => {
         return;
     }
 
-    // LOGIN (JWT + HttpOnly refresh cookie)
+    // LOGIN
     const res = await fetch(API_BASE + "/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ username, password })
     });
 
@@ -368,24 +366,25 @@ loginBtn.onclick = async () => {
     whoEl.innerText = `Signed in as: ${username}`;
     addMessage(`Welcome back, ${username}!`, "aibot");
 };
-
-/* ============================== REFRESH TOKEN ============================== */
 async function refreshAccessToken() {
     try {
         const res = await fetch(API_BASE + "/auth/refresh", {
             method: "POST",
-            credentials: "include"
+            credentials: "include" // VERY IMPORTANT so cookies are sent
         });
 
-        if (!res.ok) return false;
+        if (!res.ok) {
+            console.log("Refresh failed");
+            return false;
+        }
 
         const data = await res.json();
         ACCESS_TOKEN = data.access_token;
         console.log("Access token refreshed!");
         return true;
 
-    } catch (err) {
-        console.error("Refresh failed", err);
+    } catch (e) {
+        console.error("Refresh error:", e);
         return false;
     }
 }
@@ -405,7 +404,7 @@ function removeTyping() {
     if (el) el.remove();
 }
 
-/* ============================== SEND MESSAGE ============================== */
+/* ============================== SEND CHAT MESSAGE ============================== */
 async function sendMessage(text) {
     if (!ACCESS_TOKEN) return addMessage("Please login first.", "aibot");
 
@@ -413,52 +412,60 @@ async function sendMessage(text) {
     showTyping();
 
     let res = await fetch(API_BASE + "/chatbot", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + ACCESS_TOKEN
-        },
-        credentials: "include",
-        body: JSON.stringify({ prompt: text })
-    });
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + ACCESS_TOKEN
+    },
+    body: JSON.stringify({ prompt: text })
+});
 
-    // If expired → refresh + retry
-    if (res.status === 401) {
-        const ok = await refreshAccessToken();
-        if (ok) {
-            res = await fetch(API_BASE + "/chatbot", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + ACCESS_TOKEN
-                },
-                credentials: "include",
-                body: JSON.stringify({ prompt: text })
-            });
-        }
+// Access token expired → refresh & retry 1 time
+if (res.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+        res = await fetch(API_BASE + "/chatbot", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + ACCESS_TOKEN
+            },
+            body: JSON.stringify({ prompt: text })
+        });
     }
+}
 
-    const data = await res.json();
+const data = await res.json();
+
     removeTyping();
+
+    if (data.error) {
+        addMessage(data.error, "aibot");
+        return;
+    }
 
     addMessage(data.response || "No response", "aibot");
 }
 
-messageForm.onsubmit = e => {
+messageForm.addEventListener("submit", e => {
     e.preventDefault();
     const text = messageInput.value.trim();
     if (!text) return;
     messageInput.value = "";
     sendMessage(text);
-};
+});
 
-/* ============================== ASR / MICROPHONE ============================== */
+/* ============================== MIC BUTTON / ASR ============================== */
 let mediaRecorder = null;
 let audioChunks = [];
 let recording = false;
 
-micBtn.onclick = async () => {
+micBtn.addEventListener("click", async () => {
     if (!recording) {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            alert("Your browser does not support microphone recording.");
+            return;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
         audioChunks = [];
@@ -466,20 +473,23 @@ micBtn.onclick = async () => {
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
         mediaRecorder.onstop = async () => {
             const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
             const formData = new FormData();
             formData.append("file", audioBlob, "speech.webm");
 
-            const res = await fetch(API_BASE + "/asr", {
-                method: "POST",
-                headers: { "Authorization": "Bearer " + ACCESS_TOKEN },
-                credentials: "include",
-                body: formData
-            });
-
-            const data = await res.json();
-            messageInput.value = data.text;
-            sendMessage(data.text);
+            try {
+                const res = await fetch(API_BASE + "/asr", {
+                    method: "POST",
+                    headers: { "Authorization": "Bearer " + ACCESS_TOKEN },
+                    body: formData
+                });
+                const data = await res.json();
+                const text = data.text;
+                messageInput.value = text;
+                await sendMessage(text);
+            } catch (err) {
+                console.error(err);
+                addMessage("Error during speech recognition.", "aibot");
+            }
         };
 
         mediaRecorder.start();
@@ -490,23 +500,31 @@ micBtn.onclick = async () => {
         micBtn.innerText = "🎤";
         mediaRecorder.stop();
     }
-};
+});
+setInterval(() => {
+    if (ACCESS_TOKEN) {
+        refreshAccessToken();
+    }
+}, 10 * 60 * 1000); // every 10 min
 
-/* ============================== AUTO LOGIN IF COOKIE VALID ============================== */
+/* ============================== AUTO FOCUS LOGIN FIELD ============================== */
 window.onload = async () => {
-    const ok = await refreshAccessToken();
-    if (ok) {
-        const decoded = JSON.parse(atob(ACCESS_TOKEN.split(".")[1]));
-        CURRENT_USERNAME = decoded.sub;
-        whoEl.innerText = `Signed in as: ${CURRENT_USERNAME}`;
+    loginUser.focus();
+
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
         loginPopup.style.display = "none";
-        addMessage(`Welcome back, ${CURRENT_USERNAME}!`, "aibot");
-    } else {
-        loginUser.focus();
+        const token = ACCESS_TOKEN;
+        if (token) {
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            CURRENT_USERNAME = decoded.sub;
+            whoEl.innerText = `Signed in as: ${CURRENT_USERNAME}`;
+            addMessage(`Welcome back, ${CURRENT_USERNAME}!`, "aibot");
+        }
     }
 };
-</script>
 
+</script>
 </body>
 
 </html>
