@@ -415,7 +415,7 @@ async function sendMessage(text) {
     method: "POST",
     headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + ACCESS_TOKEN
+        "Authorization": "Bearer " 
     },
     body: JSON.stringify({ prompt: text })
 });
