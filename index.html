@@ -256,7 +256,7 @@ const loginPass2 = document.getElementById('login-pass2');
 const loginTitle = document.getElementById('login-title');
 const loginError = document.getElementById('login-error');
 const switchMode = document.getElementById('switch-mode');
-
+const logoutBtn = document.getElementById('logout-btn');
 let ACCESS_TOKEN = null;
 let CURRENT_USERNAME = null;
 let isSignupMode = false;
@@ -274,20 +274,24 @@ function addMessage(text, role) {
     messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
 }
 //=============================================
-document.getElementById("logout-btn").onclick = async () => {
-    await fetch(API_BASE + "/logout", {
-        method: "POST",
-        credentials: "include"
-    });
+logoutBtn.onclick = async () => {
+    try {
+        await fetch(API_BASE + "/logout", {
+            method: "POST",
+            credentials: "include",
+            headers: ACCESS_TOKEN ? { "Authorization": "Bearer " + ACCESS_TOKEN } : {}
+        });
+    } catch (e) {
+        console.warn("Logout request failed:", e);
+    }
 
     ACCESS_TOKEN = null;
     CURRENT_USERNAME = null;
-
     whoEl.innerText = "Not signed in";
     loginPopup.style.display = "flex";
-
     addMessage("You have been logged out.", "aibot");
 };
+
 /* ============================== LOGIN / SIGNUP SWITCH ============================== */
 switchMode.onclick = () => {
     isSignupMode = !isSignupMode;
@@ -327,6 +331,7 @@ loginBtn.onclick = async () => {
 
         const res = await fetch(API_BASE + "/signup", {
             method: "POST",
+          credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password })
         });
@@ -349,6 +354,7 @@ loginBtn.onclick = async () => {
     // LOGIN
     const res = await fetch(API_BASE + "/login", {
         method: "POST",
+      credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
     });
@@ -360,29 +366,43 @@ loginBtn.onclick = async () => {
     }
 
     ACCESS_TOKEN = data.access_token;
-    CURRENT_USERNAME = username;
+    try {
+        const decoded = JSON.parse(atob(ACCESS_TOKEN.split(".")[1]));
+        CURRENT_USERNAME = decoded.sub;
+    } catch (e) {
+        CURRENT_USERNAME = username;
+    }
 
     loginPopup.style.display = "none";
-    whoEl.innerText = `Signed in as: ${username}`;
-    addMessage(`Welcome back, ${username}!`, "aibot");
+    whoEl.innerText = `Signed in as: ${CURRENT_USERNAME}`;
+    addMessage(`Welcome back, ${CURRENT_USERNAME}!`, "aibot");
 };
+
 async function refreshAccessToken() {
     try {
         const res = await fetch(API_BASE + "/auth/refresh", {
             method: "POST",
-            credentials: "include" // VERY IMPORTANT so cookies are sent
+            credentials: "include" // ensure cookie is sent
         });
 
         if (!res.ok) {
-            console.log("Refresh failed");
+            console.log("Refresh failed (status " + res.status + ")");
             return false;
         }
 
         const data = await res.json();
+        if (!data.access_token) return false;
         ACCESS_TOKEN = data.access_token;
+
+        // update CURRENT_USERNAME from new token if possible
+        try {
+            const decoded = JSON.parse(atob(ACCESS_TOKEN.split(".")[1]));
+            CURRENT_USERNAME = decoded.sub;
+            whoEl.innerText = `Signed in as: ${CURRENT_USERNAME}`;
+        } catch (e) {}
+
         console.log("Access token refreshed!");
         return true;
-
     } catch (e) {
         console.error("Refresh error:", e);
         return false;
@@ -411,19 +431,8 @@ async function sendMessage(text) {
     addMessage(text, "user");
     showTyping();
 
-    let res = await fetch(API_BASE + "/chatbot", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + ACCESS_TOKEN
-    },
-    body: JSON.stringify({ prompt: text })
-});
-
-// Access token expired → refresh & retry 1 time
-if (res.status === 401) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
+    let res;
+    try {
         res = await fetch(API_BASE + "/chatbot", {
             method: "POST",
             headers: {
@@ -432,15 +441,45 @@ if (res.status === 401) {
             },
             body: JSON.stringify({ prompt: text })
         });
+    } catch (err) {
+        removeTyping();
+        addMessage("Network error when sending message.", "aibot");
+        return;
     }
-}
 
-const data = await res.json();
+    // If access expired, try to refresh once then retry
+    if (res.status === 401) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+            try {
+                res = await fetch(API_BASE + "/chatbot", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + ACCESS_TOKEN
+                    },
+                    body: JSON.stringify({ prompt: text })
+                });
+            } catch (err) {
+                removeTyping();
+                addMessage("Network error when retrying message.", "aibot");
+                return;
+            }
+        } else {
+            removeTyping();
+            addMessage("Session expired. Please log in again.", "aibot");
+            // show login popup
+            loginPopup.style.display = "flex";
+            return;
+        }
+    }
 
+    const data = await res.json();
     removeTyping();
 
-    if (data.error) {
-        addMessage(data.error, "aibot");
+    if (!res.ok) {
+        // show helpful message from backend if present
+        addMessage(data.detail || data.response || "Error from server", "aibot");
         return;
     }
 
@@ -507,22 +546,27 @@ setInterval(() => {
     }
 }, 10 * 60 * 1000); // every 10 min
 
-/* ============================== AUTO FOCUS LOGIN FIELD ============================== */
+/* ============================== AUTO-REFRESH INTERVAL ============================== */
+setInterval(() => {
+    // only attempt refresh when we have an access token (user logged in)
+    if (ACCESS_TOKEN) refreshAccessToken();
+}, 10 * 60 * 1000); // every 10 minutes
+
+/* ============================== AUTO LOGIN ON PAGE LOAD ============================== */
 window.onload = async () => {
     loginUser.focus();
 
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
+    // Try to refresh on load — will succeed if refresh cookie exists & server CORS is correct
+    const ok = await refreshAccessToken();
+    if (ok) {
         loginPopup.style.display = "none";
-        const token = ACCESS_TOKEN;
-        if (token) {
-            const decoded = JSON.parse(atob(token.split(".")[1]));
-            CURRENT_USERNAME = decoded.sub;
-            whoEl.innerText = `Signed in as: ${CURRENT_USERNAME}`;
-            addMessage(`Welcome back, ${CURRENT_USERNAME}!`, "aibot");
-        }
+        addMessage(`Welcome back, ${CURRENT_USERNAME || "user"}!`, "aibot");
+    } else {
+        // show login
+        loginPopup.style.display = "flex";
     }
 };
+
 
 </script>
 </body>
