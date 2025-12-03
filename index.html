@@ -540,17 +540,13 @@ micBtn.addEventListener("click", async () => {
         mediaRecorder.stop();
     }
 });
-setInterval(() => {
-    if (ACCESS_TOKEN) {
-        refreshAccessToken();
-    }
-}, 10 * 60 * 1000); // every 10 min
+
 
 /* ============================== AUTO-REFRESH INTERVAL ============================== */
 setInterval(() => {
     // only attempt refresh when we have an access token (user logged in)
     if (ACCESS_TOKEN) refreshAccessToken();
-}, 10 * 60 * 1000); // every 10 minutes
+}, 30 * 1000 ); // 
 
 /* ============================== AUTO LOGIN ON PAGE LOAD ============================== */
 window.onload = async () => {
