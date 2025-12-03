@@ -235,193 +235,280 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        /* ============================== CONFIG ============================== */
-        const API_BASE = "https://ej-0-training.hf.space";
+<script>
+/* ============================== CONFIG ============================== */
+const API_BASE = "https://ej-0-training.hf.space";
 
-        /* ============== DOM ELEMENTS ================= */
-        const messagesContainer = document.getElementById('messages-container');
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-        const micBtn = document.getElementById('mic-btn');
-        const whoEl = document.getElementById('who');
-       
-        const loginPopup = document.getElementById('login-popup');
-        const loginBtn = document.getElementById('login-btn');
-        const loginUser = document.getElementById('login-user');
-        const loginPass = document.getElementById('login-pass');
-        const loginPass2 = document.getElementById('login-pass2');
-    const loginTitle = document.getElementById('login-title');
-    const loginError = document.getElementById('login-error');
-    const switchMode = document.getElementById('switch-mode');
+/* ============== DOM ELEMENTS ================= */
+const messagesContainer = document.getElementById('messages-container');
+const messageForm = document.getElementById('message-form');
+const messageInput = document.getElementById('message-input');
+const micBtn = document.getElementById('mic-btn');
+const whoEl = document.getElementById('who');
 
-        let SESSION_ID = null;
-        let isSignupMode = false;
-       
+const loginPopup = document.getElementById('login-popup');
+const loginBtn = document.getElementById('login-btn');
+const loginUser = document.getElementById('login-user');
+const loginPass = document.getElementById('login-pass');
+const loginPass2 = document.getElementById('login-pass2');
+const loginTitle = document.getElementById('login-title');
+const loginError = document.getElementById('login-error');
+const switchMode = document.getElementById('switch-mode');
 
-        /* ============================== MESSAGE HELPER ============================== */
-        function addMessage(text, role) {
-            const wrapper = document.createElement("div");
-            wrapper.className = "message " + role;
-            const bubble = document.createElement("p");
-            bubble.innerHTML = marked.parse(text);
-            wrapper.appendChild(bubble);
-            messagesContainer.appendChild(wrapper);
-            messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
-        }
+let ACCESS_TOKEN = null;
+let CURRENT_USERNAME = null;
+let isSignupMode = false;
 
-        /* ============================== LOGIN ============================== */
-        /* LOGIN / SIGNUP SWITCH */
-    switchMode.onclick = () => {
-        isSignupMode = !isSignupMode;
+/* ============================== MESSAGE HELPER ============================== */
+function addMessage(text, role) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "message " + role;
 
-        if (isSignupMode) {
-            loginTitle.innerText = "Sign up";
-            loginBtn.innerText = "Create Account";
-            switchMode.innerText = "Already have an account? Sign in";
-            loginPass2.style.display = "block";
-        } else {
-            loginTitle.innerText = "Sign in";
-            loginBtn.innerText = "Login";
-            switchMode.innerText = "Don't have an account? Sign up";
-            loginPass2.style.display = "none";
-        }
+    const bubble = document.createElement("p");
+    bubble.innerHTML = marked.parse(text);
 
-        loginError.innerText = "";
-    };
+    wrapper.appendChild(bubble);
+    messagesContainer.appendChild(wrapper);
+    messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
+}
 
-    /* LOGIN / SIGNUP REQUEST */
-    loginBtn.onclick = async () => {
-        loginError.innerText = "";
-        const username = loginUser.value.trim();
-        const password = loginPass.value.trim();
+/* ============================== LOGIN / SIGNUP SWITCH ============================== */
+switchMode.onclick = () => {
+    isSignupMode = !isSignupMode;
 
-        if (!username || !password) {
-            loginError.innerText = "Fill all fields.";
+    if (isSignupMode) {
+        loginTitle.innerText = "Sign up";
+        loginBtn.innerText = "Create Account";
+        switchMode.innerText = "Already have an account? Sign in";
+        loginPass2.style.display = "block";
+    } else {
+        loginTitle.innerText = "Sign in";
+        loginBtn.innerText = "Login";
+        switchMode.innerText = "Don't have an account? Sign up";
+        loginPass2.style.display = "none";
+    }
+
+    loginError.innerText = "";
+};
+
+/* ============================== LOGIN / SIGNUP REQUEST ============================== */
+loginBtn.onclick = async () => {
+    loginError.innerText = "";
+    const username = loginUser.value.trim();
+    const password = loginPass.value.trim();
+
+    if (!username || !password) {
+        loginError.innerText = "Fill all fields.";
+        return;
+    }
+
+    if (isSignupMode) {
+        const password2 = loginPass2.value.trim();
+        if (password !== password2) {
+            loginError.innerText = "Passwords do not match.";
             return;
         }
 
-        if (isSignupMode) {
-            const password2 = loginPass2.value.trim();
-            if (password !== password2) {
-                loginError.innerText = "Passwords do not match.";
-                return;
-            }
+        const res = await fetch(API_BASE + "/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
 
-            const res = await fetch(API_BASE + "/signup", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (!data.success) {
-                loginError.innerText = data.error || "Signup failed.";
-                return;
-            }
-            // Auto login after signup
-            SESSION_ID = data.session_id;
-        } 
-        else {
-            const res = await fetch(API_BASE + "/login", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (!data.success) {
-                loginError.innerText = "Invalid login.";
-                return;
-            }
-            SESSION_ID = data.session_id;
+        if (!data.success) {
+            loginError.innerText = data.message || "Signup failed.";
+            return;
         }
 
+        loginError.innerText = "Account created! Please sign in.";
+        isSignupMode = false;
+        loginTitle.innerText = "Sign in";
+        loginBtn.innerText = "Login";
+        switchMode.innerText = "Don't have an account? Sign up";
+        loginPass2.style.display = "none";
+        return;
+    }
+
+    // LOGIN
+    const res = await fetch(API_BASE + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+        loginError.innerText = "Invalid username or password.";
+        return;
+    }
+
+    ACCESS_TOKEN = data.access_token;
+    CURRENT_USERNAME = username;
+
+    loginPopup.style.display = "none";
+    whoEl.innerText = `Signed in as: ${username}`;
+    addMessage(`Welcome back, ${username}!`, "aibot");
+};
+async function refreshAccessToken() {
+    try {
+        const res = await fetch(API_BASE + "/auth/refresh", {
+            method: "POST",
+            credentials: "include" // VERY IMPORTANT so cookies are sent
+        });
+
+        if (!res.ok) {
+            console.log("Refresh failed");
+            return false;
+        }
+
+        const data = await res.json();
+        ACCESS_TOKEN = data.access_token;
+        console.log("Access token refreshed!");
+        return true;
+
+    } catch (e) {
+        console.error("Refresh error:", e);
+        return false;
+    }
+}
+
+/* ============================== TYPING ANIMATION ============================== */
+function showTyping() {
+    const bubble = document.createElement("div");
+    bubble.className = "message aibot";
+    bubble.id = "typingBubble";
+    bubble.innerHTML = `<div class="typing"></div>`;
+    messagesContainer.appendChild(bubble);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function removeTyping() {
+    const el = document.getElementById("typingBubble");
+    if (el) el.remove();
+}
+
+/* ============================== SEND CHAT MESSAGE ============================== */
+async function sendMessage(text) {
+    if (!ACCESS_TOKEN) return addMessage("Please login first.", "aibot");
+
+    addMessage(text, "user");
+    showTyping();
+
+    let res = await fetch(API_BASE + "/chatbot", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + ACCESS_TOKEN
+    },
+    body: JSON.stringify({ prompt: text })
+});
+
+// Access token expired → refresh & retry 1 time
+if (res.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+        res = await fetch(API_BASE + "/chatbot", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + ACCESS_TOKEN
+            },
+            body: JSON.stringify({ prompt: text })
+        });
+    }
+}
+
+const data = await res.json();
+
+    removeTyping();
+
+    if (data.error) {
+        addMessage(data.error, "aibot");
+        return;
+    }
+
+    addMessage(data.response || "No response", "aibot");
+}
+
+messageForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const text = messageInput.value.trim();
+    if (!text) return;
+    messageInput.value = "";
+    sendMessage(text);
+});
+
+/* ============================== MIC BUTTON / ASR ============================== */
+let mediaRecorder = null;
+let audioChunks = [];
+let recording = false;
+
+micBtn.addEventListener("click", async () => {
+    if (!recording) {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            alert("Your browser does not support microphone recording.");
+            return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+            const formData = new FormData();
+            formData.append("file", audioBlob, "speech.webm");
+
+            try {
+                const res = await fetch(API_BASE + "/asr", {
+                    method: "POST",
+                    headers: { "Authorization": "Bearer " + ACCESS_TOKEN },
+                    body: formData
+                });
+                const data = await res.json();
+                const text = data.text;
+                messageInput.value = text;
+                await sendMessage(text);
+            } catch (err) {
+                console.error(err);
+                addMessage("Error during speech recognition.", "aibot");
+            }
+        };
+
+        mediaRecorder.start();
+        recording = true;
+        micBtn.innerText = "⏹️";
+    } else {
+        recording = false;
+        micBtn.innerText = "🎤";
+        mediaRecorder.stop();
+    }
+});
+setInterval(() => {
+    if (ACCESS_TOKEN) {
+        refreshAccessToken();
+    }
+}, 10 * 60 * 1000); // every 10 min
+
+/* ============================== AUTO FOCUS LOGIN FIELD ============================== */
+window.onload = async () => {
+    loginUser.focus();
+
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
         loginPopup.style.display = "none";
-        whoEl.innerText = `Signed in as: ${SESSION_ID}`;
-        addMessage(`Welcome, ${SESSION_ID}!`, "aibot");
-    };
-        /* ============================== TYPING ANIMATION ============================== */
-        function showTyping() {
-            const bubble = document.createElement("div");
-            bubble.className = "message aibot";
-            bubble.id = "typingBubble";
-            bubble.innerHTML = `<div class="typing"></div>`;
-            messagesContainer.appendChild(bubble);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const token = ACCESS_TOKEN;
+        if (token) {
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            CURRENT_USERNAME = decoded.sub;
+            whoEl.innerText = `Signed in as: ${CURRENT_USERNAME}`;
+            addMessage(`Welcome back, ${CURRENT_USERNAME}!`, "aibot");
         }
-        function removeTyping() {
-            const el = document.getElementById("typingBubble");
-            if (el) el.remove();
-        }
+    }
+};
 
-        /* ============================== SEND CHAT MESSAGE ============================== */
-        async function sendMessage(text) {
-            if (!SESSION_ID) return addMessage("Please login first.", "aibot");
-            addMessage(text, "user");
-            showTyping();
-            const res = await fetch(API_BASE + "/chatbot", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: text, session_id: SESSION_ID }),
-            });
-            const data = await res.json();
-            removeTyping();
-            addMessage(data.response || "No response", "aibot");
-        }
-
-        messageForm.addEventListener("submit", e => {
-            e.preventDefault();
-            const text = messageInput.value.trim();
-            if (!text) return;
-            messageInput.value = "";
-            sendMessage(text);
-        });
-
-        /* ============================== MIC BUTTON / SPEECH TO TEXT ============================== */
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let recording = false;
-
-        micBtn.addEventListener("click", async () => {
-            if (!recording) {
-                if (!navigator.mediaDevices?.getUserMedia) {
-                    alert("Your browser does not support microphone recording.");
-                    return;
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-                    const formData = new FormData();
-                    formData.append("file", audioBlob, "speech.webm");
-                    try {
-                        const res = await fetch(API_BASE + "/asr", { method: "POST", body: formData });
-                        const data = await res.json();
-                        const text = data.text;
-                        messageInput.value = text;
-                        await sendMessage(text);
-                    } catch (err) {
-                        console.error(err);
-                        addMessage("Error during speech recognition.", "aibot");
-                    }
-                };
-                mediaRecorder.start();
-                recording = true;
-                micBtn.innerText = "⏹️";
-            } else {
-                recording = false;
-                micBtn.innerText = "🎤";
-                mediaRecorder.stop();
-            }
-        });
-
-        /* ============================== TOOLS (LLAMA) ============================== */
-        
-
-        /* ============================== AUTO FOCUS LOGIN FIELD ============================== */
-        window.onload = () => loginUser.focus();
-    </script>
+</script>
 </body>
 
 </html>
