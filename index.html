@@ -276,10 +276,14 @@
     logoutBtn.onclick = async () => {
         try {
             await fetch(API_BASE + "/logout", {
-                method: "POST",
-                credentials: "include",
-                headers: ACCESS_TOKEN ? { "Authorization": "Bearer " + ACCESS_TOKEN } : {}
-            });
+    method: "POST",
+    credentials: "include",
+    headers: {
+        "Authorization": "Bearer " + ACCESS_TOKEN,
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ refresh_token: REFRESH_TOKEN })
+});
         } catch (e) {
             console.warn("Logout failed:", e);
         }
