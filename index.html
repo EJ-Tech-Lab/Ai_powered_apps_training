@@ -416,47 +416,71 @@ function addMessagesFromHistory(messages) {
     }
 
     /* =================== CHATBOT =================== */
-    function showTyping() {
-        const bubble = document.createElement("div");
-        bubble.className = "message aibot";
-        bubble.id = "typingBubble";
-        bubble.innerHTML = `<div class="typing"></div>`;
-        messagesContainer.appendChild(bubble);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    function removeTyping() { const el = document.getElementById("typingBubble"); if(el) el.remove(); }
-
+  function createThinkingBubble() {
+            const wrapper = document.createElement("div");
+            wrapper.className = "message aibot";
+            wrapper.id = "thinking-bubble";
+            wrapper.innerHTML = `<div class="typing"></div>`;
+            messagesContainer.appendChild(wrapper);
+            scrollToBottom();
+            return wrapper;
+        }
     async function sendMessage(text) {
-    if (!ACCESS_TOKEN) return addMessage("Please login first.", "aibot");
-    addMessage(text, "user");
-    showTyping();
+            if (!ACCESS_TOKEN) return addMessage("Please login first.", "aibot");
+            
+            // 1. Add User Message
+            addMessage(text, "user");
+            
+            // 2. Show thinking state
+            const thinkingEl = createThinkingBubble();
+            
+            let res;
+            try {
+                // 3. Start Request
+                res = await fetch(API_BASE + "/chatbot", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + ACCESS_TOKEN },
+                    body: JSON.stringify({ prompt: text })
+                });
+            } catch (err) {
+                thinkingEl.remove();
+                addMessage("Network connection error.", "aibot");
+                return;
+            }
 
-    let res;
-    try {
-        res = await fetch(API_BASE + "/chatbot", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + ACCESS_TOKEN },
-            body: JSON.stringify({ prompt: text })
-        });
-    } catch (err) {
-        removeTyping();
-        addMessage("Network error.", "aibot");
-        return;
-    }
+            // Handle Auth Error
+            if (res.status === 401) {
+                thinkingEl.remove();
+                const refreshed = await refreshAccessToken();
+                if (refreshed) return sendMessage(text); // Retry
+                loginPopup.style.display = "flex";
+                return;
+            }
 
-    if (res.status === 401) {
-        const refreshed = await refreshAccessToken();
-        if (refreshed) return sendMessage(text);
-        removeTyping();
-        addMessage("Session expired. Please login again.", "aibot");
-        loginPopup.style.display = "flex";
-        return;
-    }
+            // 4. Remove thinking bubble and create the persistent AI message bubble
+            thinkingEl.remove();
+            const aiBubbleContent = addMessage("", "aibot"); // Empty bubble to start
 
-    const data = await res.json();
-    removeTyping();
-    addMessage(data.response || "No response", "aibot");
-}
+            // 5. Handle Streaming Response
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // Decode chunk
+                const chunk = decoder.decode(value, { stream: true });
+                fullText += chunk;
+
+                // Update UI (Real-time Markdown rendering)
+                aiBubbleContent.innerHTML = marked.parse(fullText);
+                
+                // Auto-scroll only if near bottom to avoid annoying jumps if user is reading up
+                messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
+            }
+        }
 
 messageForm.addEventListener("submit", e => {
     e.preventDefault();
