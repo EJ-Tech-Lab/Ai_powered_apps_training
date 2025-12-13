@@ -358,33 +358,42 @@
 ======================================*/
 @media (max-width: 900px) {
 
-    body {
-        padding: 10px;
-    }
-
-    .app-layout {
-        flex-direction: column;
-    }
-
-    .chatbot {
-        max-width: 100%;
-    }
-
-    /* Sidebar hidden by default */
+    /* Hide sidebar from layout */
     .chat-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
         height: 100%;
         width: 260px;
+        z-index: 1600;
+
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
         border-radius: 0 20px 20px 0;
+    }
+
+    /* Show when active */
+    .chat-sidebar.active {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        z-index: 1500;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
     }
 
     #sidebar-toggle {
         display: block;
     }
-     /* Hide desktop sidebar */
-    .app-layout > .chat-sidebar {
-        display: none;
-    }
 }
+
 
     </style>
 </head>
@@ -407,17 +416,10 @@
 
     <main class="app-layout">
      <!-- DESKTOP SIDEBAR -->
+    
     <div class="chat-sidebar" id="chat-sidebar">
         <button id="new-chat-btn">＋ New Chat</button>
         <div id="chat-list"></div>
-    </div>
-
-    <!-- MOBILE OVERLAY -->
-    <div class="sidebar-overlay" id="sidebar-overlay">
-        <div class="chat-sidebar">
-            <button id="new-chat-btn-mobile">＋ New Chat</button>
-            <div id="chat-list"></div>
-        </div>
     </div>
 
 
@@ -446,6 +448,8 @@
             </div>
         </div>
     </main>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
@@ -844,18 +848,19 @@
             if (ok) loginPopup.style.display = "none";
             else loginPopup.style.display = "flex";
         };
-          const sidebarToggle = document.getElementById("sidebar-toggle");
-    const sidebarOverlay = document.getElementById("sidebar-overlay");
+      const sidebar = document.getElementById("chat-sidebar");
+const overlay = document.getElementById("sidebar-overlay");
+const toggle = document.getElementById("sidebar-toggle");
 
-    sidebarToggle.addEventListener("click", () => {
-        sidebarOverlay.classList.toggle("active");
-    });
+toggle.addEventListener("click", () => {
+    sidebar.classList.toggle("active");
+    overlay.classList.toggle("active");
+});
 
-    sidebarOverlay.addEventListener("click", (e) => {
-        if (e.target === sidebarOverlay) {
-            sidebarOverlay.classList.remove("active");
-        }
-    });
+overlay.addEventListener("click", () => {
+    sidebar.classList.remove("active");
+    overlay.classList.remove("active");
+});
     </script>
 </body>
 
