@@ -86,26 +86,6 @@
             font-size: .9em;
             opacity: .9;
         }
-        .chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.header-center {
-    text-align: center;
-    flex: 1;
-}
-
-#sidebar-toggle {
-    display: none;
-    background: transparent;
-    border: none;
-    font-size: 1.6em;
-    cursor: pointer;
-}
-
 
         /* =====================================
        CHAT AREA
@@ -337,26 +317,22 @@
         .chat-item button:hover {
             color: #000;
         }
-        /* =====================================
-   SIDEBAR OVERLAY (MOBILE)
-======================================*/
-.sidebar-overlay {
+        .sidebar-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    font-size: 1.6em;
+    cursor: pointer;
+    color: #333;
+}
+        #sidebar-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 1500;
-
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 900;
     display: none;
-    justify-content: flex-start;
 }
-
-.sidebar-overlay.active {
-    display: flex;
-}
-/* =====================================
-   MOBILE FIX
-======================================*/
-@media (max-width: 900px) {
+@media (max-width: 768px) {
 
     body {
         padding: 10px;
@@ -364,23 +340,50 @@
 
     .app-layout {
         flex-direction: column;
+        max-width: 100%;
+    }
+
+    /* Sidebar becomes off-canvas */
+    .chat-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 260px;
+        z-index: 1000;
+
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        border-radius: 0 20px 20px 0;
+    }
+
+    .chat-sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Show toggle button on mobile */
+    .sidebar-toggle {
+        display: block;
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .chat-header {
+        position: relative;
+        padding-left: 50px;
     }
 
     .chatbot {
         max-width: 100%;
     }
 
-    /* Sidebar hidden by default */
-    .chat-sidebar {
-        height: 100%;
-        width: 260px;
-        border-radius: 0 20px 20px 0;
-    }
-
-    #sidebar-toggle {
+    #sidebar-overlay.show {
         display: block;
     }
 }
+
 
     </style>
 </head>
@@ -402,23 +405,18 @@
     </div>
 
     <main class="app-layout">
-        <div class="sidebar-overlay" id="sidebar-overlay">
-    <div class="chat-sidebar" id="chat-sidebar">
-        <button id="new-chat-btn">＋ New Chat</button>
-        <div id="chat-list"></div>
-    </div>
-</div>
+        <div id="sidebar-overlay"></div>
 
+        <div class="chat-sidebar">
+            <button id="new-chat-btn">＋ New Chat</button>
+            <div id="chat-list"></div>
+        </div>
 
         <div class="chatbot">
             <div class="chat-header">
-    <button id="sidebar-toggle">☰</button>
-
-    <div class="header-center">
-        <h1>Pea 🫛</h1>
-        <div class="meta" id="who">Not signed in</div>
-    </div>
-
+    <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
+    <h1>Pea 🫛</h1>
+    <div class="meta" id="who">Not signed in</div>
     <button id="logout-btn">Logout</button>
 </div>
 
@@ -833,18 +831,26 @@
             if (ok) loginPopup.style.display = "none";
             else loginPopup.style.display = "flex";
         };
-        const sidebarToggle = document.getElementById("sidebar-toggle");
-    const sidebarOverlay = document.getElementById("sidebar-overlay");
+        const sidebar = document.querySelector('.chat-sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    const overlay = document.getElementById('sidebar-overlay');
 
-    sidebarToggle.addEventListener("click", () => {
-        sidebarOverlay.classList.toggle("active");
+    toggleBtn.addEventListener('click', () => {
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
     });
 
-    sidebarOverlay.addEventListener("click", (e) => {
-        if (e.target === sidebarOverlay) {
-            sidebarOverlay.classList.remove("active");
-        }
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
     });
+
+    // Optional: close sidebar when chat is selected
+    document.getElementById('chat-list').addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+    });
+
     </script>
 </body>
 
