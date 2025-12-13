@@ -358,8 +358,9 @@
 ======================================*/
 @media (max-width: 900px) {
 
-    /* Hide sidebar from layout */
+    /* Sidebar hidden by default */
     .chat-sidebar {
+        display: none;
         position: fixed;
         left: 0;
         top: 0;
@@ -367,21 +368,22 @@
         width: 260px;
         z-index: 1600;
 
-        transform: translateX(-100%);
-        transition: transform 0.25s ease;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
         border-radius: 0 20px 20px 0;
     }
 
-    /* Show when active */
+    /* Sidebar visible only when active */
     .chat-sidebar.active {
-        transform: translateX(0);
+        display: flex;
+        flex-direction: column;
     }
 
     .sidebar-overlay {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.35);
+        background: rgba(0, 0, 0, 0.35);
         z-index: 1500;
     }
 
