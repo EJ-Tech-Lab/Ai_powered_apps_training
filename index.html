@@ -317,6 +317,93 @@
         .chat-item button:hover {
             color: #000;
         }
+        /* =====================================
+   HEADER LAYOUT FIX
+======================================*/
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+/* Sidebar toggle button */
+#sidebar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.8em;
+    cursor: pointer;
+    color: #000;
+}
+
+/* =====================================
+   SIDEBAR OVERLAY (MOBILE)
+======================================*/
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+}
+
+/* =====================================
+   MOBILE RESPONSIVE
+======================================*/
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .app-layout {
+        flex-direction: column;
+        max-width: 100%;
+    }
+
+    .chatbot {
+        max-width: 100%;
+        height: calc(100vh - 20px);
+    }
+
+    .chat-messages {
+        height: auto;
+    }
+
+    /* Show hamburger */
+    #sidebar-toggle {
+        display: block;
+    }
+
+    /* Sidebar becomes drawer */
+    .chat-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 260px;
+
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        border-radius: 0 20px 20px 0;
+    }
+
+    .chat-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+}
+
+        
     </style>
 </head>
 
@@ -337,17 +424,26 @@
     </div>
 
     <main class="app-layout">
-        <div class="chat-sidebar">
-            <button id="new-chat-btn">＋ New Chat</button>
-            <div id="chat-list"></div>
-        </div>
+       <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="chat-sidebar" id="chat-sidebar">
+    <button id="new-chat-btn">＋ New Chat</button>
+    <div id="chat-list"></div>
+</div>
+
 
         <div class="chatbot">
             <div class="chat-header">
-                <h1>Pea 🫛</h1>
-                <div class="meta" id="who">Not signed in</div>
-                <button id="logout-btn">Logout</button>
-            </div>
+    <button id="sidebar-toggle" aria-label="Open chats">☰</button>
+
+    <div class="header-center">
+        <h1>Pea 🫛</h1>
+        <div class="meta" id="who">Not signed in</div>
+    </div>
+
+    <button id="logout-btn">Logout</button>
+</div>
+
 
             <div id="chat-page">
                 <div class="chat-messages" id="messages-container"></div>
@@ -387,7 +483,11 @@
         const fileInput = document.getElementById("file-input");
         const chatList = document.getElementById("chat-list");
         const newChatBtn = document.getElementById("new-chat-btn");
+const sidebar = document.getElementById("chat-sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    const toggleBtn = document.getElementById("sidebar-toggle");
 
+        
         let ACCESS_TOKEN = null;
         let REFRESH_TOKEN = null;
         let CURRENT_EMAIL = null;
@@ -759,6 +859,25 @@
             if (ok) loginPopup.style.display = "none";
             else loginPopup.style.display = "flex";
         };
+         function openSidebar() {
+        sidebar.classList.add("open");
+        overlay.classList.add("show");
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove("open");
+        overlay.classList.remove("show");
+    }
+
+    toggleBtn.addEventListener("click", openSidebar);
+    overlay.addEventListener("click", closeSidebar);
+
+    // Auto-close sidebar when selecting a chat (mobile UX)
+    document.getElementById("chat-list").addEventListener("click", (e) => {
+        if (window.innerWidth <= 768) {
+            closeSidebar();
+        }
+    });
     </script>
 </body>
 
