@@ -15,7 +15,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
 
         body {
             font-family: "Inter", Arial, sans-serif;
@@ -25,16 +25,17 @@
             justify-content: center;
             padding: 20px;
         }
+
         /* =====================================
    APP LAYOUT
 ======================================*/
-.app-layout {
-    display: flex;
-    gap: 16px;
-    width: 100%;
-    max-width: 1100px;
-    margin: 0 auto;
-}
+        .app-layout {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
 
 
         /* =====================================
@@ -236,158 +237,86 @@
             font-size: 0.9em;
             text-align: center;
         }
+
         /* =====================================
    CHAT SIDEBAR
 ======================================*/
-.chat-sidebar {
-    width: 240px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+        .chat-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
 
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 14px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 14px;
 
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
-    animation: fadeIn 0.6s ease both;
-}
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+            animation: fadeIn 0.6s ease both;
+        }
 
-#new-chat-btn {
-    background: #7B58E5;
-    color: white;
-    border: none;
-    padding: 12px;
-    border-radius: 14px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: 0.2s;
-}
+        #new-chat-btn {
+            background: #7B58E5;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 14px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: 0.2s;
+        }
 
-#new-chat-btn:hover {
-    background: #633ad9;
-}
+        #new-chat-btn:hover {
+            background: #633ad9;
+        }
 
-#chat-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow-y: auto;
-    max-height: 520px;
-    padding-right: 4px;
-}
+        #chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            max-height: 520px;
+            padding-right: 4px;
+        }
 
-/* Individual chat item */
-.chat-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+        /* Individual chat item */
+        .chat-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
 
-    padding: 10px 12px;
-    border-radius: 12px;
-    cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
 
-    background: rgba(123, 88, 229, 0.08);
-    transition: 0.2s;
-    font-size: 0.95em;
-}
+            background: rgba(123, 88, 229, 0.08);
+            transition: 0.2s;
+            font-size: 0.95em;
+        }
 
-.chat-item:hover {
-    background: rgba(123, 88, 229, 0.18);
-}
+        .chat-item:hover {
+            background: rgba(123, 88, 229, 0.18);
+        }
 
-.chat-item.active {
-    background: rgba(123, 88, 229, 0.35);
-    font-weight: bold;
-}
+        .chat-item.active {
+            background: rgba(123, 88, 229, 0.35);
+            font-weight: bold;
+        }
 
-/* Delete button */
-.chat-item button {
-    background: transparent;
-    border: none;
-    color: #666;
-    font-size: 1em;
-    cursor: pointer;
-}
+        /* Delete button */
+        .chat-item button {
+            background: transparent;
+            border: none;
+            color: #666;
+            font-size: 1em;
+            cursor: pointer;
+        }
 
-.chat-item button:hover {
-    color: #000;
-}
-        /* =====================================
-   SIDEBAR TOGGLE BUTTON
-======================================*/
-#sidebar-toggle {
-    display: none;
-    background: transparent;
-    border: none;
-    font-size: 1.6em;
-    cursor: pointer;
-    margin-right: 10px;
-}
-
-/* =====================================
-   SIDEBAR OVERLAY (MOBILE)
-======================================*/
-#sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 1000;
-}
-
-/* =====================================
-   MOBILE SIDEBAR BEHAVIOR
-======================================*/
-@media (max-width: 900px) {
-
-    body {
-        padding: 0;
-    }
-
-    .app-layout {
-        max-width: 100%;
-        gap: 0;
-    }
-
-    #sidebar-toggle {
-        display: inline-block;
-    }
-
-    .chat-sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        width: 260px;
-        z-index: 1100;
-
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        border-radius: 0 20px 20px 0;
-    }
-
-    .chat-sidebar.open {
-        transform: translateX(0);
-    }
-
-    #sidebar-overlay.active {
-        display: block;
-    }
-
-    .chatbot {
-        border-radius: 0;
-        height: 100vh;
-    }
-
-    .chat-messages {
-        height: calc(100vh - 170px);
-    }
-}
-
-
+        .chat-item button:hover {
+            color: #000;
+        }
     </style>
 </head>
 
@@ -407,35 +336,31 @@
         </div>
     </div>
 
-<main class="app-layout">
-    <div id="sidebar-overlay"></div>
-
-    <div class="chat-sidebar">
-        <button id="new-chat-btn">＋ New Chat</button>
-        <div id="chat-list"></div>
-    </div>
-
-    <div class="chatbot">
-        <div class="chat-header">
-            <button id="sidebar-toggle" aria-label="Open chats">☰</button>
-
-            <h1>Pea 🫛</h1>
-            <div class="meta" id="who">Not signed in</div>
-            <button id="logout-btn">Logout</button>
+    <main class="app-layout">
+        <div class="chat-sidebar">
+            <button id="new-chat-btn">＋ New Chat</button>
+            <div id="chat-list"></div>
         </div>
 
-        <div id="chat-page">
-            <div class="chat-messages" id="messages-container"></div>
-            <form class="chat-form" id="message-form">
-                <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
-                <button type="button" id="file-btn">📎</button>
-                <input type="file" id="file-input" style="display:none;" multiple />
-                <button type="button" id="mic-btn">🎤</button>
-                <button type="submit">➤</button>
-            </form>
+        <div class="chatbot">
+            <div class="chat-header">
+                <h1>Pea 🫛</h1>
+                <div class="meta" id="who">Not signed in</div>
+                <button id="logout-btn">Logout</button>
+            </div>
+
+            <div id="chat-page">
+                <div class="chat-messages" id="messages-container"></div>
+                <form class="chat-form" id="message-form">
+                    <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button type="button" id="file-btn">📎</button>
+                    <input type="file" id="file-input" style="display:none;" multiple />
+                    <button type="button" id="mic-btn">🎤</button>
+                    <button type="submit">➤</button>
+                </form>
+            </div>
         </div>
-    </div>
-</main>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
@@ -460,18 +385,14 @@
         const logoutBtn = document.getElementById('logout-btn');
         const fileBtn = document.getElementById("file-btn");
         const fileInput = document.getElementById("file-input");
-const chatList = document.getElementById("chat-list");
-const newChatBtn = document.getElementById("new-chat-btn");
-            const sidebar = document.querySelector('.chat-sidebar');
-    const toggleBtn = document.getElementById('sidebar-toggle');
-    const overlay = document.getElementById('sidebar-overlay');
+        const chatList = document.getElementById("chat-list");
+        const newChatBtn = document.getElementById("new-chat-btn");
 
-        
         let ACCESS_TOKEN = null;
         let REFRESH_TOKEN = null;
         let CURRENT_EMAIL = null;
         let isSignupMode = false;
-let CURRENT_CHAT_ID = null;
+        let CURRENT_CHAT_ID = null;
         /* =================== MESSAGES =================== */
         /* =================== MESSAGES (UPDATED) =================== */
         // Returns the bubble element so we can update it during streaming
@@ -489,9 +410,9 @@ let CURRENT_CHAT_ID = null;
 
             return bubble; // <--- RETURN THE DOM ELEMENT
         }
-function clearMessages() {
-    messagesContainer.innerHTML = "";
-}
+        function clearMessages() {
+            messagesContainer.innerHTML = "";
+        }
         function addMessagesFromHistory(messages) {
             messages.forEach(m => addMessage(m.content, m.role === "user" ? "user" : "aibot"));
         }
@@ -602,75 +523,75 @@ function clearMessages() {
 
             addMessage(`Welcome back, ${CURRENT_EMAIL}!`, "aibot");
         };
-/* =================== CHAT LIST =================== */
-async function loadChats() {
-    const res = await fetch(API_BASE + "/chats", {
-        headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
-    });
-    const chats = await res.json();
-    chatList.innerHTML = "";
+        /* =================== CHAT LIST =================== */
+        async function loadChats() {
+            const res = await fetch(API_BASE + "/chats", {
+                headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
+            });
+            const chats = await res.json();
+            chatList.innerHTML = "";
 
-    if (chats.length === 0) {
-        await createChat();
-        return;
-    }
+            if (chats.length === 0) {
+                await createChat();
+                return;
+            }
 
-    chats.forEach(c => {
-        const item = document.createElement("div");
-        item.className = "chat-item";
-        item.innerText = c.title || "Chat";
-        item.onclick = () => selectChat(c.id);
+            chats.forEach(c => {
+                const item = document.createElement("div");
+                item.className = "chat-item";
+                item.innerText = c.title || "Chat";
+                item.onclick = () => selectChat(c.id);
 
-        const del = document.createElement("button");
-        del.innerText = "✕";
-        del.onclick = async (e) => {
-            e.stopPropagation();
-            await deleteChat(c.id);
-        };
+                const del = document.createElement("button");
+                del.innerText = "✕";
+                del.onclick = async (e) => {
+                    e.stopPropagation();
+                    await deleteChat(c.id);
+                };
 
-        item.appendChild(del);
-        chatList.appendChild(item);
-    });
+                item.appendChild(del);
+                chatList.appendChild(item);
+            });
 
-    selectChat(chats[0].id);
-}
+            selectChat(chats[0].id);
+        }
 
-async function createChat() {
-    const res = await fetch(API_BASE + "/chats", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
-    });
-    const chat = await res.json();
-    await loadChats();
-    selectChat(chat.id);
-}
+        async function createChat() {
+            const res = await fetch(API_BASE + "/chats", {
+                method: "POST",
+                headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
+            });
+            const chat = await res.json();
+            await loadChats();
+            selectChat(chat.id);
+        }
 
-async function selectChat(chatId) {
-    CURRENT_CHAT_ID = chatId;
-    clearMessages();
+        async function selectChat(chatId) {
+            CURRENT_CHAT_ID = chatId;
+            clearMessages();
 
-    const res = await fetch(`${API_BASE}/chats/${chatId}/history`, {
-        headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
-    });
-    const history = await res.json();
-    history.forEach(m => addMessage(m.content, m.role === "user" ? "user" : "aibot"));
-}
+            const res = await fetch(`${API_BASE}/chats/${chatId}/history`, {
+                headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
+            });
+            const history = await res.json();
+            history.forEach(m => addMessage(m.content, m.role === "user" ? "user" : "aibot"));
+        }
 
-async function deleteChat(chatId) {
-    await fetch(`${API_BASE}/chats/${chatId}`, {
-        method: "DELETE",
-        headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
-    });
-    if (chatId === CURRENT_CHAT_ID) {
-        CURRENT_CHAT_ID = null;
-        clearMessages();
-    }
-    await loadChats();
-}
+        async function deleteChat(chatId) {
+            await fetch(`${API_BASE}/chats/${chatId}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
+            });
+            if (chatId === CURRENT_CHAT_ID) {
+                CURRENT_CHAT_ID = null;
+                clearMessages();
+            }
+            await loadChats();
+        }
 
-newChatBtn.onclick = createChat;
+        newChatBtn.onclick = createChat;
 
-        
+
         async function refreshAccessToken() {
             if (!REFRESH_TOKEN) return false;
 
@@ -714,7 +635,7 @@ newChatBtn.onclick = createChat;
                         "Content-Type": "application/json",
                         "Authorization": "Bearer " + ACCESS_TOKEN
                     },
-                   body: JSON.stringify({ prompt: text, chat_id: CURRENT_CHAT_ID })
+                    body: JSON.stringify({ prompt: text, chat_id: CURRENT_CHAT_ID })
                 });
 
                 if (res.status === 401) {
@@ -838,19 +759,6 @@ newChatBtn.onclick = createChat;
             if (ok) loginPopup.style.display = "none";
             else loginPopup.style.display = "flex";
         };
-        toggleBtn.addEventListener('click', () => {
-        sidebar.classList.add('open');
-        overlay.classList.add('active');
-    });
-
-    overlay.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-    });
-        document.getElementById('chat-list').addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
-});
     </script>
 </body>
 
