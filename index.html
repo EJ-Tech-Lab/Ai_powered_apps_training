@@ -19,7 +19,7 @@
 
         body {
             font-family: "Inter", Arial, sans-serif;
-            background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+            background: linear-gradient(135deg, #000000, #555454);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -73,7 +73,7 @@
             padding: 1.3em;
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(6px);
-            color: #0f0;
+            color: rgb(0, 0, 0);
             text-align: center;
             font-weight: bold;
         }
@@ -85,6 +85,17 @@
         .meta {
             font-size: .9em;
             opacity: .9;
+        }
+
+        .chat-header button {
+            background-color: rgb(0, 0, 0);
+            color: #fff;
+            border: none;
+            padding: 0 18px;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1.1em;
         }
 
         /* =====================================
@@ -108,7 +119,7 @@
         }
 
         .user p {
-            background-color: #7B58E5;
+            background-color: rgb(0, 0, 0);
             color: #fff;
             padding: 0.6em 1em;
             border-radius: 18px 18px 0 18px;
@@ -173,7 +184,7 @@
         }
 
         .chat-form button {
-            background-color: #7B58E5;
+            background-color: rgb(0, 0, 0);
             color: #fff;
             border: none;
             padding: 0 18px;
@@ -184,7 +195,7 @@
         }
 
         .chat-form button:hover {
-            background-color: #633ad9;
+            background-color: #3c3c3c;
         }
 
         /* =====================================
@@ -221,7 +232,7 @@
             width: 100%;
             padding: 12px;
             margin-top: 16px;
-            background: #7B58E5;
+            background: #000000;
             color: white;
             border: none;
             border-radius: 10px;
@@ -231,7 +242,7 @@
 
         #switch-mode {
             margin-top: 10px;
-            color: #7B58E5;
+            color: #000000;
             text-decoration: underline;
             cursor: pointer;
             font-size: 0.9em;
@@ -258,7 +269,7 @@
         }
 
         #new-chat-btn {
-            background: #7B58E5;
+            background: #000000;
             color: white;
             border: none;
             padding: 12px;
@@ -269,7 +280,7 @@
         }
 
         #new-chat-btn:hover {
-            background: #633ad9;
+            background: #4f4f50;
         }
 
         #chat-list {
@@ -317,86 +328,86 @@
         .chat-item button:hover {
             color: #000;
         }
+
         .chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
 
-.header-center {
-    text-align: center;
-    flex: 1;
-}
+        .header-center {
+            text-align: center;
+            flex: 1;
+        }
 
-#sidebar-toggle {
-    display: none;
-    background: transparent;
-    border: none;
-    font-size: 1.6em;
-    cursor: pointer;
-}
+        #sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            font-size: 1.6em;
+            cursor: pointer;
+        }
+
         /* =====================================
    SIDEBAR OVERLAY (MOBILE)
 ======================================*/
-.sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 1500;
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 1500;
 
-    display: none;
-    justify-content: flex-start;
-}
+            display: none;
+            justify-content: flex-start;
+        }
 
-.sidebar-overlay.active {
-    display: flex;
-}
+        .sidebar-overlay.active {
+            display: flex;
+        }
 
-/* =====================================
+        /* =====================================
    MOBILE FIX
 ======================================*/
-@media (max-width: 900px) {
+        @media (max-width: 900px) {
 
-    /* Sidebar hidden by default */
-    .chat-sidebar {
-        display: none;
-        position: fixed;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 260px;
-        z-index: 1600;
+            /* Sidebar hidden by default */
+            .chat-sidebar {
+                display: none;
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100%;
+                width: 260px;
+                z-index: 1600;
 
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(12px);
-        border-radius: 0 20px 20px 0;
-    }
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(12px);
+                border-radius: 0 20px 20px 0;
+            }
 
-    /* Sidebar visible only when active */
-    .chat-sidebar.active {
-        display: flex;
-        flex-direction: column;
-    }
+            /* Sidebar visible only when active */
+            .chat-sidebar.active {
+                display: flex;
+                flex-direction: column;
+            }
 
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.35);
-        z-index: 1500;
-    }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.35);
+                z-index: 1500;
+            }
 
-    .sidebar-overlay.active {
-        display: block;
-    }
+            .sidebar-overlay.active {
+                display: block;
+            }
 
-    #sidebar-toggle {
-        display: block;
-    }
-}
-
-
+            #sidebar-toggle {
+                display: block;
+            }
+        }
     </style>
 </head>
 
@@ -411,31 +422,32 @@
             <input id="login-pass2" type="password" placeholder="Confirm password" style="display:none;" />
 
             <button id="login-btn">Login</button>
-            <p id="login-error" style="color:red"></p>
+            <p id="login-error" style="color:rgb(60, 60, 60)"></p>
             <div id="switch-mode">Don't have an account? Sign up</div>
         </div>
     </div>
 
     <main class="app-layout">
-     <!-- DESKTOP SIDEBAR -->
-    
-    <div class="chat-sidebar" id="chat-sidebar">
-        <button id="new-chat-btn">＋ New Chat</button>
-        <div id="chat-list"></div>
-    </div>
+        <!-- DESKTOP SIDEBAR -->
+
+        <div class="chat-sidebar" id="chat-sidebar">
+            <button id="new-chat-btn">＋ New Chat</button>
+            <div id="chat-list"></div>
+        </div>
 
 
         <div class="chatbot">
             <div class="chat-header">
-    <button id="sidebar-toggle">☰</button>
+                <button id="sidebar-toggle">☰</button>
 
-    <div class="header-center">
-        <h1>Pea 🫛</h1>
-        <div class="meta" id="who">Not signed in</div>
-    </div>
+                <div class="header-center">
+                    <h1>Ruin AI</h1>
 
-    <button id="logout-btn">Logout</button>
-</div>
+                    <div class="meta" id="who">Not signed in</div>
+                </div>
+
+                <button type="button" id="logout-btn">Logout</button>
+            </div>
 
 
             <div id="chat-page">
@@ -764,7 +776,7 @@
                     // Auto-scroll to bottom
                     messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
                 }
-await loadChats();
+                await loadChats();
             } catch (err) {
                 console.error(err);
                 botBubble.innerText = "Network error or connection lost.";
@@ -856,19 +868,19 @@ await loadChats();
             if (ok) loginPopup.style.display = "none";
             else loginPopup.style.display = "flex";
         };
-      const sidebar = document.getElementById("chat-sidebar");
-const overlay = document.getElementById("sidebar-overlay");
-const toggle = document.getElementById("sidebar-toggle");
+        const sidebar = document.getElementById("chat-sidebar");
+        const overlay = document.getElementById("sidebar-overlay");
+        const toggle = document.getElementById("sidebar-toggle");
 
-toggle.addEventListener("click", () => {
-    sidebar.classList.toggle("active");
-    overlay.classList.toggle("active");
-});
+        toggle.addEventListener("click", () => {
+            sidebar.classList.toggle("active");
+            overlay.classList.toggle("active");
+        });
 
-overlay.addEventListener("click", () => {
-    sidebar.classList.remove("active");
-    overlay.classList.remove("active");
-});
+        overlay.addEventListener("click", () => {
+            sidebar.classList.remove("active");
+            overlay.classList.remove("active");
+        });
     </script>
 </body>
 
