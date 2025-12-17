@@ -782,32 +782,56 @@
 
         /* =================== FILE UPLOAD =================== */
         fileBtn.addEventListener("click", () => fileInput.click());
-        fileInput.addEventListener("change", async () => {
-            if (!ACCESS_TOKEN) return addMessage("Please login to upload files.", "aibot");
+       fileInput.addEventListener("change", async () => {
+    if (!ACCESS_TOKEN) {
+        addMessage("Please login to upload files.", "aibot");
+        return;
+    }
 
-            const file = fileInput.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append("file", file);
+    if (!CURRENT_CHAT_ID) {
+        addMessage("Please select or create a chat before uploading documents.", "aibot");
+        fileInput.value = "";
+        return;
+    }
 
-            addMessage(`Uploading ${file.name}...`, "user");
-            showTyping();
-            try {
-                const res = await fetch(API_BASE + "/upload_document", {
-                    method: "POST",
-                    headers: { "Authorization": "Bearer " + ACCESS_TOKEN },
-                    body: formData
-                });
-                const data = await res.json();
-                removeTyping();
-                if (!res.ok) addMessage(data.detail || "Upload failed.", "aibot");
-                else addMessage(`Uploaded **${file.name}**\nDocument ID: ${data.doc_id}\nChunks: ${data.num_chunks}`, "aibot");
-            } catch (err) {
-                removeTyping();
-                addMessage("Upload error.", "aibot");
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    addMessage(`Uploading **${file.name}**...`, "user");
+
+    try {
+        const res = await fetch(
+            `${API_BASE}/chats/${CURRENT_CHAT_ID}/documents`,
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + ACCESS_TOKEN
+                },
+                body: formData
             }
-            fileInput.value = "";
-        });
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            addMessage(data.detail || "Upload failed.", "aibot");
+        } else {
+            addMessage(
+                `Document **${file.name}** uploaded successfully.\n\nYou can now ask questions about it.`,
+                "aibot"
+            );
+        }
+    } catch (err) {
+        console.error(err);
+        addMessage("Network error while uploading document.", "aibot");
+    } finally {
+        fileInput.value = "";
+    }
+});
+
         //======================================================
         let mediaRecorder = null;
         let audioChunks = [];
