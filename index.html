@@ -442,10 +442,9 @@
             <div id="chat-page">
                 <div class="chat-messages" id="messages-container"></div>
                 <form class="chat-form" id="message-form">
-                    <input type="file" id="file-input" style="display:none;" multiple accept=".pdf,.txt,.md,.py,.js" />
                     <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
-                    <button type="button" id="attach-btn" title="Upload Document">📎</button>
-                   
+                    <button type="button" id="file-btn">📎</button>
+                    <input type="file" id="file-input" style="display:none;" multiple />
                     <button type="button" id="mic-btn">🎤</button>
                     <button type="submit">➤</button>
                 </form>
@@ -466,8 +465,7 @@
         const messageInput = document.getElementById('message-input');
         const micBtn = document.getElementById('mic-btn');
         const whoEl = document.getElementById('who');
-        const attachBtn = document.getElementById('attach-btn');
-        const fileInput = document.getElementById('file-input');
+
         const loginPopup = document.getElementById('login-popup');
         const loginBtn = document.getElementById('login-btn');
         const loginEmail = document.getElementById('login-email');
@@ -477,6 +475,8 @@
         const loginError = document.getElementById('login-error');
         const switchMode = document.getElementById('switch-mode');
         const logoutBtn = document.getElementById('logout-btn');
+        const fileBtn = document.getElementById("file-btn");
+        const fileInput = document.getElementById("file-input");
         const chatList = document.getElementById("chat-list");
         const newChatBtn = document.getElementById("new-chat-btn");
 
@@ -491,23 +491,16 @@
         function addMessage(text, role) {
             const wrapper = document.createElement("div");
             wrapper.className = "message " + role;
-            const bubble = document.createElement("p");
-            wrapper.appendChild(bubble); // Append first to ensure structure
-            
-            if (role === 'system') {
-                // Style system messages (uploads etc) differently
-                wrapper.style.alignSelf = "center";
-                wrapper.style.background = "transparent";
-                wrapper.style.color = "#888";
-                wrapper.style.fontSize = "0.85em";
-                bubble.innerText = text; // No markdown for system mostly
-            } else {
-                bubble.innerHTML = text ? marked.parse(text) : '<span class="typing-cursor">...</span>';
-            }
 
+            const bubble = document.createElement("p");
+            // Only parse if text exists, otherwise empty for streaming start
+            bubble.innerHTML = text ? marked.parse(text) : '<span class="typing-cursor"></span>';
+
+            wrapper.appendChild(bubble);
             messagesContainer.appendChild(wrapper);
             messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
-            return bubble; 
+
+            return bubble; // <--- RETURN THE DOM ELEMENT
         }
         function clearMessages() {
             messagesContainer.innerHTML = "";
@@ -515,62 +508,6 @@
         function addMessagesFromHistory(messages) {
             messages.forEach(m => addMessage(m.content, m.role === "user" ? "user" : "aibot"));
         }
-        /* =================== NEW: FILE UPLOAD LOGIC =================== */
-        
-        // 1. Trigger hidden input when paperclip is clicked
-        attachBtn.addEventListener('click', () => {
-            if (!ACCESS_TOKEN) {
-                alert("Please login to upload files.");
-                return;
-            }
-            fileInput.click();
-        });
-
-        // 2. Handle file selection
-        fileInput.addEventListener('change', async (e) => {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-
-            for (let i = 0; i < files.length; i++) {
-                await uploadFile(files[i]);
-            }
-            
-            // Clear input so same file can be selected again if needed
-            fileInput.value = ""; 
-        });
-
-        async function uploadFile(file) {
-            // Create a UI bubble that says "Uploading..."
-            const statusBubble = addMessage(`Uploading <b>${file.name}</b>...`, 'system');
-            
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const res = await fetch(API_BASE + "/upload_doc", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": "Bearer " + ACCESS_TOKEN
-                        // Note: Do NOT set Content-Type here; fetch sets it automatically for FormData (multipart)
-                    },
-                    body: formData
-                });
-
-                const data = await res.json();
-
-                if (res.ok && data.success) {
-                    statusBubble.innerHTML = `✅ Uploaded <b>${file.name}</b>. I can now answer questions about it.`;
-                } else {
-                    statusBubble.innerHTML = `❌ Failed to upload ${file.name}: ${data.message}`;
-                    statusBubble.style.color = "red";
-                }
-
-            } catch (err) {
-                console.error(err);
-                statusBubble.innerHTML = `❌ Network error uploading ${file.name}`;
-            }
-        }
-        
         /* =================== LOGOUT =================== */
         logoutBtn.onclick = async () => {
             try {
@@ -843,7 +780,34 @@
             sendMessage(text);
         });
 
-      
+        /* =================== FILE UPLOAD =================== */
+        fileBtn.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", async () => {
+            if (!ACCESS_TOKEN) return addMessage("Please login to upload files.", "aibot");
+
+            const file = fileInput.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append("file", file);
+
+            addMessage(`Uploading ${file.name}...`, "user");
+            showTyping();
+            try {
+                const res = await fetch(API_BASE + "/upload_document", {
+                    method: "POST",
+                    headers: { "Authorization": "Bearer " + ACCESS_TOKEN },
+                    body: formData
+                });
+                const data = await res.json();
+                removeTyping();
+                if (!res.ok) addMessage(data.detail || "Upload failed.", "aibot");
+                else addMessage(`Uploaded **${file.name}**\nDocument ID: ${data.doc_id}\nChunks: ${data.num_chunks}`, "aibot");
+            } catch (err) {
+                removeTyping();
+                addMessage("Upload error.", "aibot");
+            }
+            fileInput.value = "";
+        });
         //======================================================
         let mediaRecorder = null;
         let audioChunks = [];
