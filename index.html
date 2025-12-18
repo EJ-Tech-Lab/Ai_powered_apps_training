@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pea Chat</title>
+    <title>Ember AI</title>
     <link rel="icon" type="image/png" sizes="32x32" href="myicon.png">
     <style>
         /* =====================================
@@ -613,7 +613,7 @@
 
             await loadChats();
 
-            addMessage(`Welcome back, ${CURRENT_EMAIL}!`, "aibot");
+            addMessage(`Hey, welcome back! Iam here when you're ready.`, "aibot");
         };
         /* =================== CHAT LIST =================== */
         async function loadChats() {
@@ -724,7 +724,7 @@
             // 2. Add Empty Bot Message (Placeholder)
             // We get the DOM element 'botBubble' back so we can fill it.
             const botBubble = addMessage("", "aibot");
-            botBubble.innerHTML = '<span class="typing">Thinking...</span>'; // Temporary loading state
+            botBubble.innerHTML = '<span class="typing">Ember is thinking...</span>'; // Temporary loading state
 
             try {
                 const res = await fetch(API_BASE + "/chatbot", {
