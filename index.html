@@ -453,19 +453,47 @@
     </main>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
+    ================================================================================
 
+
+    This script implements the full client-side logic for a production-grade
+    AI chat application. It is written in plain JavaScript and deliberately avoids
+    framework abstractions to keep behavior explicit and inspectable.
+
+
+    Core responsibilities:
+    - Authentication (signup, login, logout, token refresh)
+    - Multi-chat management (create, select, delete chats)
+    - Real-time streaming chat UI
+    - File upload for RAG (document ingestion)
+    - Speech-to-text via microphone (ASR)
+    - Resilient session handling
+
+
+    This frontend is tightly coupled to a FastAPI + LangGraph backend and assumes:
+    - Token-based authentication (access + refresh tokens)
+    - Streaming text responses over HTTP
+    - Persistent chat threads identified by chat_id
+    ================================================================================
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
-        /* ============================== CONFIG ============================== */
+        /* =============================================================================
+        CONFIGURATION
+        ============================================================================= */
+        // Base URL of the backend API
         const API_BASE = "https://ej-0-training.hf.space";
 
-        /* =================== DOM ELEMENTS =================== */
+        /* =============================================================================
+        DOM ELEMENT REFERENCES
+        ============================================================================= */
+        // Core chat UI
         const messagesContainer = document.getElementById('messages-container');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         const micBtn = document.getElementById('mic-btn');
         const whoEl = document.getElementById('who');
 
+        // Authentication UI
         const loginPopup = document.getElementById('login-popup');
         const loginBtn = document.getElementById('login-btn');
         const loginEmail = document.getElementById('login-email');
@@ -475,40 +503,66 @@
         const loginError = document.getElementById('login-error');
         const switchMode = document.getElementById('switch-mode');
         const logoutBtn = document.getElementById('logout-btn');
+
+        // File upload / RAG
         const fileBtn = document.getElementById("file-btn");
         const fileInput = document.getElementById("file-input");
+
+        // Chat list / sidebar
         const chatList = document.getElementById("chat-list");
         const newChatBtn = document.getElementById("new-chat-btn");
 
-        let ACCESS_TOKEN = null;
-        let REFRESH_TOKEN = null;
+        /* =============================================================================
+        APPLICATION STATE
+        ============================================================================= */
+        // Authentication state
+        let ACCESS_TOKEN = null;  // Short-lived access token
+        let REFRESH_TOKEN = null; // Long-lived refresh token
         let CURRENT_EMAIL = null;
+
+        // UI / flow state
         let isSignupMode = false;
         let CURRENT_CHAT_ID = null;
-        /* =================== MESSAGES =================== */
-        /* =================== MESSAGES (UPDATED) =================== */
-        // Returns the bubble element so we can update it during streaming
+
+        /* =============================================================================
+        MESSAGE RENDERING
+        ============================================================================= */
+
+        // Adds a message bubble to the chat UI.
+        // Returns the <p> element so it can be updated during streaming.
         function addMessage(text, role) {
             const wrapper = document.createElement("div");
             wrapper.className = "message " + role;
 
             const bubble = document.createElement("p");
-            // Only parse if text exists, otherwise empty for streaming start
+            // If text exists, render Markdown immediately.
+            // Otherwise, render a typing cursor placeholder (used for streaming).
             bubble.innerHTML = text ? marked.parse(text) : '<span class="typing-cursor"></span>';
 
             wrapper.appendChild(bubble);
             messagesContainer.appendChild(wrapper);
+
+            // Always scroll to the bottom when a new message arrives
             messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
 
-            return bubble; // <--- RETURN THE DOM ELEMENT
+            return bubble;
         }
+
+        // Clears all messages from the UI
         function clearMessages() {
             messagesContainer.innerHTML = "";
         }
+
+        // Renders a list of messages retrieved from backend history
         function addMessagesFromHistory(messages) {
             messages.forEach(m => addMessage(m.content, m.role === "user" ? "user" : "aibot"));
         }
-        /* =================== LOGOUT =================== */
+
+        /* =============================================================================
+        LOGOUT HANDLING
+        ============================================================================= */
+
+        // Best-effort logout: even if the backend call fails, local state is cleared
         logoutBtn.onclick = async () => {
             try {
                 await fetch(API_BASE + "/logout", {
@@ -524,16 +578,23 @@
                 console.warn("Logout failed:", e);
             }
 
+            // Clear local session state
             ACCESS_TOKEN = null;
             REFRESH_TOKEN = null;
             CURRENT_EMAIL = null;
+
             whoEl.innerText = "Not signed in";
             loginPopup.style.display = "flex";
             messagesContainer.innerHTML = "";
             addMessage("You have been logged out.", "aibot");
         };
 
-        /* =================== SWITCH LOGIN / SIGNUP =================== */
+
+        /* =============================================================================
+        LOGIN / SIGNUP MODE TOGGLE
+        ============================================================================= */
+
+        // Switches between login and signup modes in the same UI
         switchMode.onclick = () => {
             isSignupMode = !isSignupMode;
             if (isSignupMode) {
@@ -550,7 +611,12 @@
             loginError.innerText = "";
         };
 
-        /* =================== LOGIN / SIGNUP REQUEST =================== */
+
+        /* =============================================================================
+        AUTHENTICATION REQUESTS
+        ============================================================================= */
+
+
         loginBtn.onclick = async () => {
             loginError.innerText = "";
             const email = loginEmail.value.trim();
@@ -568,7 +634,8 @@
                     return;
                 }
 
-                // SIGNUP
+                /* ---------------------- SIGNUP FLOW ---------------------- */
+
                 const res = await fetch(API_BASE + "/signup", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -590,7 +657,9 @@
                 return;
             }
 
-            // LOGIN
+
+            /* ---------------------- LOGIN FLOW ----------------------- */
+
             const res = await fetch(API_BASE + "/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -615,14 +684,20 @@
 
             addMessage(`Hey, welcome back! Iam here when you're ready.`, "aibot");
         };
-        /* =================== CHAT LIST =================== */
+
+
+        /* =============================================================================
+        CHAT LIST MANAGEMENT
+        ============================================================================= */
+
+
         async function loadChats() {
             const res = await fetch(API_BASE + "/chats", {
                 headers: { "Authorization": "Bearer " + ACCESS_TOKEN }
             });
             const chats = await res.json();
             chatList.innerHTML = "";
-
+            // Auto-create a chat if none exist
             if (chats.length === 0) {
                 await createChat();
                 return;
@@ -632,8 +707,8 @@
                 const item = document.createElement("div");
                 item.className = "chat-item";
                 if (c.id === CURRENT_CHAT_ID) {
-                    item.classList.add("active"); // Ensure you have CSS for .chat-item.active
-                    item.style.backgroundColor = "#e0e7ff"; // Fallback styling
+                    item.classList.add("active");
+                    item.style.backgroundColor = "#e0e7ff";
                 }
                 item.innerText = c.title || "Chat";
                 item.onclick = () => selectChat(c.id);
@@ -713,20 +788,32 @@
             }
         }
 
-        /* =================== CHATBOT =================== */
+
+        /* =============================================================================
+        CHATBOT MANAGMENT
+        ============================================================================= */
+
+
+        // Sends a user message to the backend chatbot endpoint and
+        // streams the AI response back into the UI in real time.
 
         async function sendMessage(text) {
+
+            // Guard: user must be authenticated before sending messages
             if (!ACCESS_TOKEN) return addMessage("Please login first.", "aibot");
 
-            // 1. Add User Message
+            // 1. Render the user's message immediately in the chat UI
             addMessage(text, "user");
 
-            // 2. Add Empty Bot Message (Placeholder)
-            // We get the DOM element 'botBubble' back so we can fill it.
+            // 2. Create an empty AI message bubble as a placeholder
+            // This bubble will be progressively filled as streamed data arrives
             const botBubble = addMessage("", "aibot");
+
+            // Temporary loading indicator while waiting for the stream
             botBubble.innerHTML = '<span class="typing">Ember is thinking...</span>'; // Temporary loading state
 
             try {
+                // Send the prompt to the backend chatbot API
                 const res = await fetch(API_BASE + "/chatbot", {
                     method: "POST",
                     headers: {
@@ -736,109 +823,136 @@
                     body: JSON.stringify({ prompt: text, chat_id: CURRENT_CHAT_ID })
                 });
 
+                // If the access token is expired, attempt silent refresh
                 if (res.status === 401) {
                     const refreshed = await refreshAccessToken();
-                    if (refreshed) return sendMessage(text); // Retry
+
+                    // Retry the original message if refresh succeeded
+                    if (refreshed) return sendMessage(text);
+
+                    // Otherwise force re-login
                     botBubble.innerText = "Session expired. Please login.";
                     loginPopup.style.display = "flex";
                     return;
                 }
 
-                // 3. Initialize Stream Reader
+                // 3. Initialize a stream reader for the response body
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
+
+                // Accumulates the full AI response as chunks arrive
                 let fullText = "";
 
-                // 4. Read the Stream
+                // 4. Continuously read streamed chunks from the backend
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    // Decode the chunk (bytes -> string)
+                    // Decode binary chunk into text
                     const chunk = decoder.decode(value, { stream: true });
                     fullText += chunk;
 
-                    // Update UI immediately
-                    // We re-parse Markdown on every chunk to ensure formatting (bold, code blocks) renders live.
+                    // Re-render Markdown on every chunk to support live formatting
                     botBubble.innerHTML = marked.parse(fullText);
 
-                    // Auto-scroll to bottom
+                    // Keep the chat scrolled to the latest message
                     messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
                 }
+
+                // Refresh chat list metadata after message completion
                 await loadChats();
+
             } catch (err) {
+                // Network or unexpected runtime error
                 console.error(err);
                 botBubble.innerText = "Network error or connection lost.";
             }
         }
-
+        //Handles text message form submission
         messageForm.addEventListener("submit", e => {
             e.preventDefault();
             const text = messageInput.value.trim();
             if (!text) return;
+
+            // Clear input immediately for responsiveness
             messageInput.value = "";
+
+            // Dispatch the message
             sendMessage(text);
         });
 
-        /* =================== FILE UPLOAD =================== */
+
+        /* =============================================================================
+        File upload
+        ============================================================================= */
+
+        // Open native file picker when the upload button is clicked
         fileBtn.addEventListener("click", () => fileInput.click());
-       fileInput.addEventListener("change", async () => {
-    if (!ACCESS_TOKEN) {
-        addMessage("Please login to upload files.", "aibot");
-        return;
-    }
 
-    if (!CURRENT_CHAT_ID) {
-        addMessage("Please select or create a chat before uploading documents.", "aibot");
-        fileInput.value = "";
-        return;
-    }
-
-    const file = fileInput.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    addMessage(`Uploading **${file.name}**...`, "user");
-
-    try {
-        const res = await fetch(
-            `${API_BASE}/chats/${CURRENT_CHAT_ID}/documents`,
-            {
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + ACCESS_TOKEN
-                },
-                body: formData
+        //Handles document upload for RAG ingestion
+        fileInput.addEventListener("change", async () => {
+            if (!ACCESS_TOKEN) {
+                addMessage("Please login to upload files.", "aibot");
+                return;
             }
-        );
 
-        const data = await res.json();
+            if (!CURRENT_CHAT_ID) {
+                addMessage("Please select or create a chat before uploading documents.", "aibot");
+                fileInput.value = "";
+                return;
+            }
 
-        if (!res.ok) {
-            addMessage(data.detail || "Upload failed.", "aibot");
-        } else {
-            addMessage(
-                `Document **${file.name}** uploaded successfully.\n\nYou can now ask questions about it.`,
-                "aibot"
-            );
-        }
-    } catch (err) {
-        console.error(err);
-        addMessage("Network error while uploading document.", "aibot");
-    } finally {
-        fileInput.value = "";
-    }
-});
+            const file = fileInput.files[0];
+            if (!file) return;
 
-        //======================================================
+            const formData = new FormData();
+            formData.append("file", file);
+
+            addMessage(`Uploading **${file.name}**...`, "user");
+
+            try {
+                const res = await fetch(
+                    `${API_BASE}/chats/${CURRENT_CHAT_ID}/documents`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer " + ACCESS_TOKEN
+                        },
+                        body: formData
+                    }
+                );
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    addMessage(data.detail || "Upload failed.", "aibot");
+                } else {
+                    addMessage(
+                        `Document **${file.name}** uploaded successfully.\n\nYou can now ask questions about it.`,
+                        "aibot"
+                    );
+                }
+            } catch (err) {
+                console.error(err);
+                addMessage("Network error while uploading document.", "aibot");
+            } finally {
+                fileInput.value = "";
+            }
+        });
+
+        /* =============================================================================
+        VOICE INPUT (ASR)
+        ============================================================================= */
+
         let mediaRecorder = null;
         let audioChunks = [];
         let recording = false;
 
+        //Toggles microphone recording and sends audio to ASR backend
         micBtn.addEventListener("click", async () => {
+
             if (!recording) {
+
                 if (!navigator.mediaDevices?.getUserMedia) {
                     alert("Your browser does not support microphone recording.");
                     return;
@@ -872,15 +986,26 @@
             }
         });
 
-        /* =================== AUTO-REFRESH =================== */
+        /* =============================================================================
+        AUTO-REFRESH
+        ============================================================================= */
+
         setInterval(() => { if (ACCESS_TOKEN) refreshAccessToken(); }, 10 * 60 * 1000);
 
-        /* =================== AUTO LOGIN ON LOAD =================== */
+        /* =============================================================================
+        AUTO LOGIN ON LOAD
+        ============================================================================= */
+
         window.onload = async () => {
             const ok = await refreshAccessToken();
             if (ok) loginPopup.style.display = "none";
             else loginPopup.style.display = "flex";
         };
+
+        /* =============================================================================
+        MOBILE SIDEBAR
+        ============================================================================= */
+
         const sidebar = document.getElementById("chat-sidebar");
         const overlay = document.getElementById("sidebar-overlay");
         const toggle = document.getElementById("sidebar-toggle");
@@ -894,6 +1019,8 @@
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
         });
+
+        //================================================================================
     </script>
 </body>
 
