@@ -453,28 +453,7 @@
     </main>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    ================================================================================
-
-
-    This script implements the full client-side logic for a production-grade
-    AI chat application. It is written in plain JavaScript and deliberately avoids
-    framework abstractions to keep behavior explicit and inspectable.
-
-
-    Core responsibilities:
-    - Authentication (signup, login, logout, token refresh)
-    - Multi-chat management (create, select, delete chats)
-    - Real-time streaming chat UI
-    - File upload for RAG (document ingestion)
-    - Speech-to-text via microphone (ASR)
-    - Resilient session handling
-
-
-    This frontend is tightly coupled to a FastAPI + LangGraph backend and assumes:
-    - Token-based authentication (access + refresh tokens)
-    - Streaming text responses over HTTP
-    - Persistent chat threads identified by chat_id
-    ================================================================================
+  
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         /* =============================================================================
