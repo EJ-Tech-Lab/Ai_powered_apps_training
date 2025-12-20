@@ -1,9 +1,11 @@
 # Ember AI — Full-Stack Conversational AI Platform
 
-Ember AI is a full-stack conversational AI application designed and built as a **production-oriented system**, not a prototype.  
+Ember AI is a full-stack conversational AI application designed and built as a production-oriented system, not a prototype.
+It is developed in a way that it can be easily modified to fit any domain. This project combines both frontend and backend development, incorporating strong AI
+models using groq inference and advanced libraries and frameworks like LangChain/LangGraph backed by Supabase database.
 It integrates real-time LLM streaming, persistent memory, Retrieval-Augmented Generation (RAG), voice input, and secure authentication into a cohesive architecture.
 
-The project emphasizes **clear separation of concerns**, **backend-driven intelligence**, and a **thin, deterministic frontend**.
+The project emphasizes clear separation of concerns, backend-driven intelligence, and a thin, deterministic frontend.
 
 
 
