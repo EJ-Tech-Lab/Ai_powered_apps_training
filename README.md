@@ -1,157 +1,244 @@
-**Ember AI — Stateful Conversational AI Platform**
+# Ember AI — Full-Stack Conversational AI Platform
 
-Ember AI is a full-stack conversational AI backend designed around persistent memory, retrieval-augmented generation (RAG), and graph-based reasoning orchestration.
-The system supports authenticated multi-chat sessions, document-scoped knowledge retrieval, real-time streaming responses, and long-running conversations with controlled context growth.
-This project emphasizes system design, robustness, and extensibility rather than a minimal demo implementation.
+Ember AI is a full-stack conversational AI application designed and built as a **production-oriented system**, not a prototype.  
+It integrates real-time LLM streaming, persistent memory, Retrieval-Augmented Generation (RAG), voice input, and secure authentication into a cohesive architecture.
 
-**Overview**
+The project emphasizes **clear separation of concerns**, **backend-driven intelligence**, and a **thin, deterministic frontend**.
 
-The core objective of Ember AI is to provide a stable, stateful conversational experience that scales beyond stateless prompt-response interactions.
-Key goals of the system include:
--Maintaining long-term conversational context without uncontrolled token growth
--Enabling document-aware conversations through per-chat RAG
--Supporting real-time streaming responses
--Separating reasoning, tool execution, and summarization into explicit control flow
--Persisting all relevant state across restarts
-The backend is implemented using FastAPI and LangGraph, with PostgreSQL serving both as a relational datastore and a vector database (via pgvector).
+---
 
-**High-Level Architecture**
+## System Overview
 
-At a system level, Ember AI is composed of the following layers:
-**1. API Layer (FastAPI)**
+Ember AI consists of two primary layers:
 
-Exposes authenticated REST endpoints for:
--Chat lifecycle management
--Conversational interaction
--Document upload and ingestion
--Speech-to-text (ASR)
--Handles request validation, streaming responses, and error handling
--Enforces user authentication via Supabase JWTs
+- **Backend**: Responsible for intelligence, memory, retrieval, orchestration, and persistence  
+- **Frontend**: A lightweight web client responsible for interaction, streaming display, and user experience
 
-**2. Conversational Orchestration (LangGraph)**
+All conversational logic, memory, and reasoning reside exclusively on the backend.
 
-Conversations are modeled as a state machine, not a linear chain
-Explicit nodes handle:
--LLM reasoning
--Tool execution
--Context summarization
--Routing logic determines when tools are invoked and when summaries are generated
--PostgreSQL-backed checkpointing ensures full persistence of graph state
+---
 
-**3. AI & Reasoning Layer**
+## Architecture Summary
 
-Primary LLM (streaming enabled) handles conversational reasoning and tool selection.
-Secondary LLM handles auxiliary tasks such as:
--Conversation summarization
--Translation
--Rewriting
--Automatic chat title generation
+Browser (Frontend)
+|
+| HTTPS + JWT
+v
+FastAPI Backend
+|
+|-- LLM (Streaming)
+|-- Vector Store (RAG)
+|-- Database (Chats & Messages)
+|-- ASR (Voice Input)
+|-- Auth (Supabase)
 
-A fixed system identity ensures consistent assistant behavior across sessions
+yaml
+Copy code
 
-**4. Retrieval-Augmented Generation (RAG)**
+The frontend acts as a **transparent interface** to backend capabilities, avoiding duplicated logic or hidden state.
 
--Documents are uploaded per chat and ingested into a vector store
--Each chunk is embedded using a normalized embedding model
--Retrieval is strictly scoped to the active chat thread
--Retrieved context is injected transparently without exposing retrieval mechanics to the model
+---
 
-**5. Persistence Layer**
+## Backend
 
-Supabase (PostgreSQL) stores:
--User accounts and authentication data
--Chat metadata
--Message history
--Document metadata
-pgvector is used for efficient semantic similarity search
-LangGraph checkpoints are stored directly in PostgreSQL for durability
+### Backend Responsibilities
 
-**Core Features**
+The backend is responsible for:
 
--Authenticated multi-chat sessions with isolated state per conversation
--Graph-based reasoning flow using LangGraph
--Rolling conversation summarization to prevent context overflow
--Per-chat document ingestion and retrieval
--Token-level streaming responses
--Tool-augmented reasoning, including:
-                                      -Web search
-                                      -Weather queries
-                                      -Summarization
-                                      -Translation
-                                      -Rewriting
-                                      -Automatic chat title generation
-                                      -Speech-to-text (ASR) using Whisper via Groq
-                                      -Persistent state across restarts
-**Technology Stack**
+- User authentication and authorization
+- Chat session management
+- Streaming LLM responses
+- Persistent conversation memory
+- Retrieval-Augmented Generation (RAG)
+- Audio transcription (ASR)
+- Secure multi-chat isolation
+- Backend-controlled system prompts and behavior
 
--**Backend**
-  -Python
-  -FastAPI
-  -LangChain
-  -LangGraph
+The backend is the **single source of truth** for all application state.
 
--**AI & ML**
-  -Groq-hosted LLMs
-  -HuggingFace embeddings (intfloat/e5-large-v2)
-  -Whisper (speech-to-text)
+---
 
--**Data & Storage**
-  - PostgreSQL
-  -pgvector
-  -Supabase
+### Technology Stack (Backend)
 
--**Infrastructure**
-  -Async PostgreSQL connection pooling
-  -PostgreSQL-backed LangGraph checkpointing
-  -Token streaming over HTTP
-  -Conversation State Management
+- **Python**
+- **FastAPI** — async API framework
+- **LangGraph** — conversational state orchestration
+- **LLM API** — streamed response generation
+- **Vector Store** — document embeddings for RAG
+- **Supabase** — authentication and user management
+- **SQL Database** — chat and message persistence
 
-Rather than storing entire conversation histories indefinitely, Ember AI uses a rolling summarization strategy:
--Recent messages are kept verbatim
--Older messages are compressed into a concise summary
--The summary is continuously updated as conversations evolve
-This preserves semantic continuity while keeping token usage bounded
-This approach allows long-running conversations without degrading performance or exceeding context limits.
+---
 
-**Retrieval-Augmented Generation Design**
+### Chat & Memory Model
 
-RAG in Ember AI is intentionally scoped and controlled:
--Documents are associated with a specific chat
--Retrieval queries only search within that chat’s documents
--Embeddings are normalized for cosine similarity
-The LLM is explicitly instructed to:
--Use retrieved context as the primary source of truth
--Avoid hallucination when context is insufficient
--Avoid referencing internal retrieval mechanics
-This design prevents cross-chat data leakage and keeps retrieval behavior predictable.
+- Each user may have multiple independent chats
+- Each chat has a unique `chat_id`
+- Message history is persisted server-side
+- Memory is reconstructed from stored messages on each request
+- No client-side memory is trusted or reused
 
-**Authentication & Security**
+This guarantees deterministic behavior even across reloads or devices.
 
--User authentication is handled via Supabase
--JWTs are validated on every protected endpoint
--All chat data is scoped to the authenticated user
--Refresh tokens are supported for session continuity
+---
 
-**Environment Variables**
+### Streaming Response Design
 
-The following environment variables are required:
--SUPABASE_URL
--SUPABASE_KEY
--SUPABASE_DB_URL
--GROQ_API_KEY
--TAVILY_API_KEY
--WEATHER_API_KEY
+LLM responses are streamed token-by-token from the backend:
 
-**Known Limitations**
+- Backend emits a streaming HTTP response
+- Tokens are flushed as soon as they are generated
+- The backend does not buffer or post-process full responses
+- Streaming preserves responsiveness for long outputs
 
--No rate limiting is currently enforced
--Vector storage assumes pgvector availability
--Authorization is enforced at the API layer, not per-graph node
+This design improves perceived performance and user experience.
 
-**Future Improvements**
+---
 
--Role-based access control
--Improved document metadata filtering
--Fine-grained tool permissioning
--Conversation export and analytics
--Background ingestion for large documents
+### Retrieval-Augmented Generation (RAG)
+
+Document ingestion follows a controlled backend pipeline:
+
+1. Document upload
+2. Text extraction
+3. Chunking
+4. Embedding generation
+5. Vector storage
+6. Contextual retrieval at query time
+
+Documents are scoped per chat, preventing cross-conversation leakage.
+
+---
+
+### Voice Input (ASR)
+
+- Audio is received as raw input
+- Transcription occurs server-side
+- Resulting text enters the same chat pipeline as typed input
+- No special-case logic exists for voice vs text
+
+---
+
+### Security & Authentication
+
+- JWT-based authentication via Supabase
+- Chat ownership enforced server-side
+- Unauthorized access returns immediate rejection
+- Backend never trusts client-supplied state beyond identifiers
+
+---
+
+## Frontend
+
+### Frontend Overview
+
+The frontend is a **framework-free, vanilla JavaScript web client** designed for:
+
+- Real-time streaming display
+- Low latency
+- Explicit control over request flow
+- Minimal abstraction between UI and backend
+
+The frontend intentionally avoids complex state management frameworks.
+
+---
+
+### Frontend Responsibilities
+
+The frontend handles:
+
+- Login / signup / logout
+- Token lifecycle management
+- Chat selection and creation
+- Rendering streamed responses
+- Markdown rendering
+- File uploads for RAG
+- Voice recording via browser APIs
+- UI state synchronization with backend data
+
+It does **not** perform reasoning, memory handling, or prompt logic.
+
+---
+
+### Technology Stack (Frontend)
+
+- **HTML**
+- **CSS**
+- **Vanilla JavaScript**
+- **Browser Streaming APIs**
+- **MediaRecorder API** (voice input)
+- **Markdown Renderer**
+
+---
+
+### Authentication Flow
+
+- Access tokens are attached to all protected requests
+- Refresh tokens are used for silent renewal
+- Automatic refresh occurs on expiration
+- On failure, the user is cleanly logged out
+
+This ensures session continuity without compromising security.
+
+---
+
+### Chat Lifecycle
+
+- Chats are fetched from the backend after authentication
+- Selecting a chat loads its persisted message history
+- New chats are created explicitly
+- Deleting a chat removes all backend state
+- Chat titles are generated and updated server-side
+
+The frontend never reconstructs chat state locally.
+
+---
+
+### Streaming Handling
+
+- Responses are consumed using `ReadableStream`
+- Tokens are appended incrementally to the UI
+- Markdown is re-rendered continuously
+- Scroll position is automatically maintained
+
+This enables a smooth, real-time conversational experience.
+
+---
+
+### UI Design Philosophy
+
+The UI follows these principles:
+
+- Thin client
+- Backend-driven truth
+- Explicit state transitions
+- No speculative logic
+- Predictable behavior
+
+The frontend exists to **reflect**, not reinterpret, backend behavior.
+
+---
+
+## Deployment
+
+- Backend runs as an async FastAPI service
+- Frontend can be hosted statically (e.g. GitHub Pages)
+- Communication occurs exclusively over HTTPS
+- CORS is explicitly configured on the backend
+
+---
+
+## Why This Project Matters
+
+From a systems engineering perspective, Ember AI demonstrates:
+
+- Real-time LLM streaming integration
+- Stateful conversational orchestration
+- Secure multi-user chat isolation
+- Practical RAG implementation
+- Clean frontend–backend separation
+- Production-oriented architectural thinking
+
+This project prioritizes **correctness, clarity, and maintainability** over convenience abstractions.
+
+---
