@@ -18,23 +18,6 @@ All conversational logic, memory, and reasoning reside exclusively on the backen
 
 ---
 
-## Architecture Summary
-
-Browser (Frontend)
-|
-| HTTPS + JWT
-v
-FastAPI Backend
-|
-|-- LLM (Streaming)
-|-- Vector Store (RAG)
-|-- Database (Chats & Messages)
-|-- ASR (Voice Input)
-|-- Auth (Supabase)
-
-yaml
-Copy code
-
 The frontend acts as a **transparent interface** to backend capabilities, avoiding duplicated logic or hidden state.
 
 ---
@@ -239,6 +222,6 @@ From a systems engineering perspective, Ember AI demonstrates:
 - Clean frontend–backend separation
 - Production-oriented architectural thinking
 
-This project prioritizes **correctness, clarity, and maintainability** over convenience abstractions.
+This project prioritizes correctness, clarity, and maintainability over convenience abstractions.
 
 ---
